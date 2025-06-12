@@ -17,6 +17,6 @@ public class StoryPicture extends Auditable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(length = 256, name = "object_id", unique = true, nullable = false)
+    @Column(length = 45, name = "object_id", unique = true, nullable = false)
     private String objectId;
 }

@@ -17,7 +17,7 @@ public class ProfilePicture extends Auditable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(length = 256, name = "object_id", nullable = false, unique = true)
+    @Column(length = 45, name = "object_id", nullable = false, unique = true)
     private String objectId;
 
     @OneToOne
