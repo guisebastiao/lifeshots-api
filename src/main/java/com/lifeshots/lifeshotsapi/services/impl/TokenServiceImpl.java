@@ -4,7 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.lifeshots.lifeshotsapi.dtos.TokenResponseDTO;
+import com.lifeshots.lifeshotsapi.dtos.response.TokenResponseDTO;
+import com.lifeshots.lifeshotsapi.exceptions.BadRequestException;
 import com.lifeshots.lifeshotsapi.exceptions.ServerErrorException;
 import com.lifeshots.lifeshotsapi.models.User;
 import com.lifeshots.lifeshotsapi.services.TokenService;
@@ -24,7 +25,7 @@ public class TokenServiceImpl implements TokenService {
     @Value("${session.expiration.time}")
     private String durationToken;
 
-    private final String issuer = "minerva";
+    private final String issuer = "lifeshots";
 
     public TokenResponseDTO generateToken(User user) {
         try {
@@ -39,7 +40,7 @@ public class TokenServiceImpl implements TokenService {
 
             return new TokenResponseDTO(token, expires);
         } catch (JWTCreationException exception) {
-            throw new ServerErrorException("Algo deu errado, tente novamente mais tarde");
+            throw new RuntimeException("JWT creation exception", exception);
         }
     }
 

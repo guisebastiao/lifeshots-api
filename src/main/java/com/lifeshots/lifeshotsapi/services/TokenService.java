@@ -1,6 +1,6 @@
 package com.lifeshots.lifeshotsapi.services;
 
-import com.lifeshots.lifeshotsapi.dtos.TokenResponseDTO;
+import com.lifeshots.lifeshotsapi.dtos.response.TokenResponseDTO;
 import com.lifeshots.lifeshotsapi.models.User;
 
 public interface TokenService {

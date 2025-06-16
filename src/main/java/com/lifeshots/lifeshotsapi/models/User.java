@@ -36,7 +36,7 @@ public class User extends Auditable implements UserDetails {
     @Column(length = 60, nullable = false)
     private String password;
 
-    @Column(length = 150)
+    @Column(columnDefinition = "TEXT")
     private String bio;
 
     @Column(name = "amount_following", nullable = false)

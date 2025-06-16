@@ -1,4 +1,4 @@
-package com.lifeshots.lifeshotsapi.dtos;
+package com.lifeshots.lifeshotsapi.dtos.response;
 
 import java.time.Instant;
 
