@@ -9,5 +9,6 @@ public record UserResponseDTO(
         Integer amountFollowing,
         Integer amountFollowers,
         Integer amountPosts,
-        Boolean privateAccount
+        Boolean privateAccount,
+        ProfilePictureResponseDTO profilePicture
 ){ }

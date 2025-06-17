@@ -33,4 +33,7 @@ public class Post extends Auditable {
 
     @OneToMany(mappedBy = "post")
     private List<LikePost> likePosts;
+
+    @OneToMany(mappedBy = "post")
+    private List<PostPicture> postPictures;
 }

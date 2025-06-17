@@ -92,6 +92,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
+    @ExceptionHandler(FailedUploadFileException.class)
+    public ResponseEntity<DefaultDTO> handleFailedUploadFileException(Exception e, HttpServletRequest request) {
+        ErrorDTO errorDTO = new ErrorDTO(HttpStatus.INTERNAL_SERVER_ERROR.name(), e.getMessage(), request.getRequestURI(), null);
+        DefaultDTO response = new DefaultDTO("Desculpe, algo não saiu como planejado", Boolean.FALSE, null, errorDTO, null);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<DefaultDTO> handleRuntimeException(HttpServletRequest request) {
         ErrorDTO errorDTO = new ErrorDTO(HttpStatus.INTERNAL_SERVER_ERROR.name(), "Erro interno do servidor. Tente novamente mais tarde", request.getRequestURI(), null);

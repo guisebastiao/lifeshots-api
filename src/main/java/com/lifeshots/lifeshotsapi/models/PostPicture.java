@@ -19,4 +19,8 @@ public class PostPicture extends Auditable {
 
     @Column(length = 45, name = "object_id", nullable = false, unique = true)
     private String objectId;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id")
+    private Post post;
 }

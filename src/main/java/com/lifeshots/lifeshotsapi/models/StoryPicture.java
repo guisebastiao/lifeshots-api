@@ -19,4 +19,8 @@ public class StoryPicture extends Auditable {
 
     @Column(length = 45, name = "object_id", unique = true, nullable = false)
     private String objectId;
+
+    @ManyToOne
+    @JoinColumn(name = "story_id")
+    private Story story;
 }
