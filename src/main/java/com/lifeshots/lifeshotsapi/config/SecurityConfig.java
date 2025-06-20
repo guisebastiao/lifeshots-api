@@ -2,6 +2,7 @@ package com.lifeshots.lifeshotsapi.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lifeshots.lifeshotsapi.dtos.DefaultDTO;
+import com.lifeshots.lifeshotsapi.dtos.ErrorDTO;
 import com.lifeshots.lifeshotsapi.security.SecurityFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -53,13 +55,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint(((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType("application/json");
-                            DefaultDTO defaultDTO = new DefaultDTO("Por favor, faça o login", Boolean.FALSE,null, null, null);
+                            ErrorDTO errorDTO = new ErrorDTO(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.name(), request.getRequestURI(), null);
+                            DefaultDTO defaultDTO = new DefaultDTO("Por favor, faça login novamente para continuar", Boolean.FALSE,null, errorDTO, null);
                             new ObjectMapper().writeValue(response.getOutputStream(), defaultDTO);
                         }))
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.setContentType("application/json");
-                            DefaultDTO defaultDTO = new DefaultDTO("Você não tem permissão para acessar esse recurso", Boolean.FALSE, null, null, null);
+                            ErrorDTO errorDTO = new ErrorDTO(HttpStatus.FORBIDDEN.value(), HttpStatus.FORBIDDEN.name(), request.getRequestURI(), null);
+                            DefaultDTO defaultDTO = new DefaultDTO("Você não tem permissão para acessar este recurso", Boolean.FALSE, null, errorDTO, null);
                             new ObjectMapper().writeValue(response.getOutputStream(), defaultDTO);
                         })
                 )
