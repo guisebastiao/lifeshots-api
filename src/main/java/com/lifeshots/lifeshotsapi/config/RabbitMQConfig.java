@@ -12,6 +12,7 @@ import org.springframework.amqp.core.Queue;
 public class RabbitMQConfig {
 
     public static final String RESET_PASSWORD_QUEUE_NAME = "reset_password_queue";
+    public static final String NOTIFICATION_QUEUE_NAME = "notification_queue";
 
     @Bean
     public MessageConverter jsonMessageConverter() {
@@ -28,5 +29,10 @@ public class RabbitMQConfig {
     @Bean
     public Queue queue() {
         return new Queue(RESET_PASSWORD_QUEUE_NAME, true);
+    }
+
+    @Bean
+    public Queue notificationQueue() {
+        return new Queue(NOTIFICATION_QUEUE_NAME, true);
     }
 }

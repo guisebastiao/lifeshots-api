@@ -57,8 +57,11 @@ public class User extends Auditable implements UserDetails {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private ResetPassword resetPassword;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Notification notification;
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
+    private List<Notification> senders;
+
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL)
+    private List<Notification> receivers;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Setting setting;
@@ -84,7 +87,7 @@ public class User extends Auditable implements UserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<LikeStory> likeStories;
 
-    @OneToMany(mappedBy = "followers", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL)
     private List<Follow> followers;
 
     @OneToMany(mappedBy = "following", cascade = CascadeType.ALL)
@@ -95,6 +98,9 @@ public class User extends Auditable implements UserDetails {
 
     @OneToMany(mappedBy = "blocked", cascade = CascadeType.ALL)
     private List<Block> blocked;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<PushSubscription> pushSubscriptions;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

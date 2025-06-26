@@ -35,6 +35,6 @@ public class Story extends Auditable {
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL)
     private List<LikeStory> likeStories;
 
-    @OneToMany(mappedBy = "story")
-    private List<StoryPicture> storyPictures;
+    @OneToOne(mappedBy = "story", cascade = CascadeType.ALL)
+    private StoryPicture storyPicture;
 }

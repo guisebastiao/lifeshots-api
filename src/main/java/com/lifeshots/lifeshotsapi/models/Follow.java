@@ -17,7 +17,7 @@ public class Follow extends Auditable {
     @ManyToOne
     @MapsId("followerId")
     @JoinColumn(name = "follower_id")
-    private User followers;
+    private User follower;
 
     @ManyToOne
     @MapsId("followingId")

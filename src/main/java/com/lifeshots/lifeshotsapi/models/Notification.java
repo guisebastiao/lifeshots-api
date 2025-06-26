@@ -6,29 +6,35 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @Entity
 @Table(name = "notifications")
 public class Notification extends Auditable {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @EmbeddedId
+    private NotificationPk id;
+
+    @ManyToOne
+    @MapsId("senderId")
+    @JoinColumn(name = "sender_id")
+    private User sender;
+
+    @ManyToOne
+    @MapsId("receiverId")
+    @JoinColumn(name = "receiver_id")
+    private User receiver;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationType type;
 
     @Column(nullable = false)
+    private String title;
+
+    @Column(nullable = false)
     private String message;
 
     @Column(name = "is_read", nullable = false)
     private Boolean isRead = false;
-
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
 }
