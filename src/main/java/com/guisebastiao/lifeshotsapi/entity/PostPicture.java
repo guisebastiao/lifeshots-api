@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "story_pictures")
+@Table(name = "post_pictures")
 public class PostPicture extends Auditable {
 
     @Id

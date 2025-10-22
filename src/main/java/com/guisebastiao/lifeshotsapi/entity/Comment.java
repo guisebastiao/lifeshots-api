@@ -34,6 +34,14 @@ public class Comment extends Auditable {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @ManyToOne
+    @JoinColumn(name = "profile_id", nullable = false)
+    private Profile profile;
+
+    @ManyToOne
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
+
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LikeComment> likeComments;
 }

@@ -21,6 +21,10 @@ public class Post extends Auditable {
     @GeneratedValue
     private UUID id;
 
+    @ManyToOne
+    @JoinColumn(name = "profile_id", nullable = false)
+    private Profile profile;
+
     @Column(nullable = false, length = 300)
     private String content;
 

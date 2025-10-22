@@ -30,6 +30,14 @@ public class ReplyComment extends Auditable {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @ManyToOne
+    @JoinColumn(name = "profile_id", nullable = false)
+    private Profile profile;
+
+    @ManyToOne
+    @JoinColumn(name = "comment_id", nullable = false)
+    private Comment comment;
+
     @OneToMany(mappedBy = "replyComment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LikeReplyComment> likeReplyComments;
 }
