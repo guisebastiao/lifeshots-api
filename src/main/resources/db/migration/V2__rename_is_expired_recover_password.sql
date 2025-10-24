@@ -1,0 +1,1 @@
+ALTER TABLE recover_passwords RENAME COLUMN is_expired TO is_active;
