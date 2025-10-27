@@ -9,6 +9,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UserResponse;
+import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
@@ -79,6 +80,10 @@ public class AuthServiceImpl implements AuthService {
 
         User user = this.userMapper.toEntity(dto);
         user.setPassword(this.passwordEncoder.encode(dto.password()));
+
+        Profile profile = new Profile();
+        profile.setUser(user);
+        user.setProfile(profile);
 
         User savedUser = this.userRepository.save(user);
         UserResponse userResponse = this.userMapper.toDTO(savedUser);

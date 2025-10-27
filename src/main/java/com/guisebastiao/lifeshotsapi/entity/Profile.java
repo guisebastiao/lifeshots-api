@@ -18,11 +18,11 @@ import java.util.UUID;
 public class Profile extends Auditable {
 
     @Id
-    @GeneratedValue
     private UUID id;
 
     @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @MapsId
+    @JoinColumn(name = "id", nullable = false, unique = true)
     private User user;
 
     @Column(nullable = false, length = 250)
@@ -31,14 +31,17 @@ public class Profile extends Auditable {
     @Column(length = 300)
     private String bio;
 
-    @Column(nullable = false)
+    @Column(name = "posts_count", nullable = false)
     private int postsCount = 0;
 
-    @Column(nullable = false)
+    @Column(name = "followers_count", nullable = false)
     private int followersCount = 0;
 
-    @Column(nullable = false)
+    @Column(name = "following_count", nullable = false)
     private int followingCount = 0;
+
+    @Column(name = "is_private", nullable = false)
+    private boolean isPrivate = false;
 
     @OneToOne(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     private ProfilePicture profilePicture;
