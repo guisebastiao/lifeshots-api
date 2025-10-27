@@ -23,6 +23,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -70,6 +71,10 @@ public class AuthServiceImpl implements AuthService {
 
         if (existsUser.isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Essa conta já está cadastrada");
+        }
+
+        if (this.userRepository.existsUserByHandleIgnoreCase(dto.handle())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nome de usuário já está em uso");
         }
 
         User user = this.userMapper.toEntity(dto);
