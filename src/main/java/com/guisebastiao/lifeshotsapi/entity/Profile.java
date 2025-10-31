@@ -52,6 +52,12 @@ public class Profile extends Auditable {
     @OneToMany(mappedBy = "following", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Follow> followers;
 
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> receivers;
+
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> senders;
+
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Story> stories;
 
