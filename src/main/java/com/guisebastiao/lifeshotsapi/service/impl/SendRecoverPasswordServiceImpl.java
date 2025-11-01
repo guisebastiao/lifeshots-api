@@ -3,7 +3,7 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.config.EmailQueueConfig;
 import com.guisebastiao.lifeshotsapi.dto.MailDTO;
 import com.guisebastiao.lifeshotsapi.service.MailService;
-import com.guisebastiao.lifeshotsapi.service.RabbitService;
+import com.guisebastiao.lifeshotsapi.service.SendRecoverPasswordService;
 import jakarta.transaction.Transactional;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class RabbitServiceImpl implements RabbitService {
+public class SendRecoverPasswordServiceImpl implements SendRecoverPasswordService {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;

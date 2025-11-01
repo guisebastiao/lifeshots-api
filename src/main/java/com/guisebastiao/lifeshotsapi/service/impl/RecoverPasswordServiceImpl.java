@@ -8,7 +8,7 @@ import com.guisebastiao.lifeshotsapi.entity.RecoverPassword;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.RecoverPasswordRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
-import com.guisebastiao.lifeshotsapi.service.RabbitService;
+import com.guisebastiao.lifeshotsapi.service.SendRecoverPasswordService;
 import com.guisebastiao.lifeshotsapi.service.RecoverPasswordService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import jakarta.transaction.Transactional;
@@ -34,7 +34,7 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
     private RecoverPasswordRepository recoverPasswordRepository;
 
     @Autowired
-    private RabbitService rabbitService;
+    private SendRecoverPasswordService rabbitService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
