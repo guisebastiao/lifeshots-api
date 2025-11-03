@@ -6,7 +6,7 @@ import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.mapper.resolver.ProfileResolver;
 import org.mapstruct.*;
 
-@Mapper(componentModel = "spring", uses = {ProfileResolver.class})
+@Mapper(componentModel = "spring", uses = {ProfileResolver.class, ProfilePictureMapper.class})
 public interface ProfileMapper {
 
     @Mapping(target = "handle", source = ".", qualifiedByName = "resolveGetHandle")

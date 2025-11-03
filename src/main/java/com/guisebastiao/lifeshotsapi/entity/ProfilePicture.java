@@ -17,11 +17,11 @@ import java.util.UUID;
 public class ProfilePicture extends Auditable {
 
     @Id
-    @GeneratedValue
     private UUID id;
 
     @OneToOne
-    @JoinColumn(name = "profile_id", nullable = false, unique = true)
+    @MapsId
+    @JoinColumn(name = "id", nullable = false, unique = true)
     private Profile profile;
 
     @Column(name = "file_key", nullable = false, unique = true)
