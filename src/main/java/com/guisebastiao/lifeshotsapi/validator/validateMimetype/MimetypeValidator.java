@@ -1,4 +1,4 @@
-package com.guisebastiao.lifeshotsapi.validator.ValidateMimetype;
+package com.guisebastiao.lifeshotsapi.validator.validateMimetype;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

@@ -20,8 +20,9 @@ public class StoryPicture extends Auditable {
     @GeneratedValue
     private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "story_id", nullable = false)
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "id", nullable = false)
     private Story story;
 
     @Column(name = "file_key", nullable = false, unique = true)

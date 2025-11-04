@@ -7,7 +7,6 @@ import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
-import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
@@ -19,9 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ProfileServiceImpl implements ProfileService {
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private ProfileRepository profileRepository;

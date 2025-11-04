@@ -1,6 +1,6 @@
 package com.guisebastiao.lifeshotsapi.dto.request;
 
-import com.guisebastiao.lifeshotsapi.validator.ValidateMimetype.ValidateMimetype;
+import com.guisebastiao.lifeshotsapi.validator.validateMimetype.ValidateMimetype;
 import com.guisebastiao.lifeshotsapi.validator.validateFileSize.ValidateFileSize;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.multipart.MultipartFile;

@@ -41,8 +41,8 @@ public class Story extends Auditable {
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
 
-    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StoryPicture> storyPictures;
+    @OneToOne(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private StoryPicture storyPicture;
 
     @OneToMany(mappedBy = "story",cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LikeStory> likeStories;
