@@ -2,8 +2,11 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.DeleteAccountRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
+import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
@@ -21,10 +24,29 @@ public class AccountServiceImpl implements AccountService {
     private UserRepository userRepository;
 
     @Autowired
+    private ProfileRepository profileRepository;
+
+
+    @Autowired
     private AuthenticatedUserProvider authenticatedUserProvider;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public DefaultResponse<Void> setProfilePrivacy(ProfilePrivacyRequest dto) {
+        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
+        if (profile.isPrivate() == dto.privacy()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Sua conta já possui está privacidade");
+        }
+
+        profile.setPrivate(dto.privacy());
+        this.profileRepository.save(profile);
+
+        return new DefaultResponse<Void>(true, "Sua privacidade foi atualizada com sucesso", null);
+    }
 
     @Override
     public DefaultResponse<Void> updatePassword(UpdatePasswordRequest dto) {

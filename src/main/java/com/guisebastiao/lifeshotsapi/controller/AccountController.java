@@ -2,6 +2,7 @@ package com.guisebastiao.lifeshotsapi.controller;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.DeleteAccountRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
 import jakarta.validation.Valid;
@@ -16,6 +17,12 @@ public class AccountController {
 
     @Autowired
     private AccountService accountService;
+
+    @PatchMapping("/privacy")
+    public ResponseEntity<DefaultResponse<Void>> setProfilePrivacy(@Valid @RequestBody ProfilePrivacyRequest dto) {
+        DefaultResponse<Void> response = accountService.setProfilePrivacy(dto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 
     @PatchMapping("/password")
     public ResponseEntity<DefaultResponse<Void>> updatePassword(@Valid @RequestBody UpdatePasswordRequest dto) {

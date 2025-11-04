@@ -11,6 +11,7 @@ public interface ProfileMapper {
 
     @Mapping(target = "handle", source = ".", qualifiedByName = "resolveGetHandle")
     @Mapping(target = "isOwnProfile", source = ".", qualifiedByName = "resolveIsOwnProfile")
+    @Mapping(target = "isPrivate", source = "private")
     ProfileResponse toDTO(Profile entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

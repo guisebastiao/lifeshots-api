@@ -8,6 +8,7 @@ import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.Story;
 import com.guisebastiao.lifeshotsapi.entity.StoryPicture;
 import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
+import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryPictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
@@ -36,6 +37,9 @@ public class StoryServiceImpl implements StoryService {
 
     @Autowired
     private StoryPictureRepository storyPictureRepository;
+
+    @Autowired
+    private ProfileRepository profileRepository;
 
     @Autowired
     private StoryMapper storyMapper;
@@ -101,10 +105,16 @@ public class StoryServiceImpl implements StoryService {
 
     @Override
     public DefaultResponse<StoryResponse> findStoryById(String storyId) {
+        Profile profileAuth = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
         Story story = this.storyRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(storyId)).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
 
-        // VERIFICAR SE O PERFIL É PRIVADO E OS USUARIOS NÃO SE SEGUEM RETORNAR 403.
+        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(story.getProfile(), profileAuth);
+
+        if (story.getProfile().isPrivate() && !mutualFollow && !profileAuth.getId().equals(story.getProfile().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, você não tem permissão para verificar esse story");
+        }
 
         StoryResponse data = this.storyMapper.toDTO(story);
 

@@ -39,10 +39,16 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     public DefaultResponse<ProfileResponse> findProfileById(String profileId) {
+        Profile profileAuth = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
         Profile profile = this.profileRepository.findById(UUIDConverter.toUUID(profileId)).
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
 
-        // VERIFICAR SE O PERFIL É PRIVADO E OS USUARIOS NÃO SE SEGUEM RETORNAR 403.
+        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(profile, profileAuth);
+
+        if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, sem permissão para verificar esse perfil");
+        }
 
         ProfileResponse data = this.profileMapper.toDTO(profile);
 
