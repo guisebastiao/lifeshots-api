@@ -2,14 +2,11 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.*;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.FollowType;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.mapper.FollowMapper;
-import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
-import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FollowService;
@@ -43,12 +40,6 @@ public class FollowServiceImpl implements FollowService {
 
     @Autowired
     private PushNotificationService pushNotificationService;
-
-    @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    private NotificationMapper notificationMapper;
 
     @Override
     @Transactional
@@ -85,7 +76,7 @@ public class FollowServiceImpl implements FollowService {
         String title = "Você tem um novo seguidor";
         String body = String.format("%s começou a seguir você", user.getHandle());
 
-        this.sendNotification(user.getProfile(), following, title, body, NotificationType.NEW_FOLLOWERS);
+        this.pushNotificationService.sendNotification(user.getProfile(), following, title, body, NotificationType.NEW_FOLLOWERS);
 
         return new DefaultResponse<Void>(true, String.format("Você está seguindo %s", following.getUser().getHandle()), null);
     }
@@ -168,28 +159,5 @@ public class FollowServiceImpl implements FollowService {
         this.profileRepository.saveAll(List.of(profile, user.getProfile()));
 
         return new DefaultResponse<Void>(true, String.format("Você parou de seguir %s", profile.getUser().getHandle()), null);
-    }
-
-    private void sendNotification(Profile sender, Profile receiver, String title, String body, NotificationType type) {
-        Notification notification = new Notification();
-        notification.setTitle(title);
-        notification.setBody(body);
-        notification.setSender(sender);
-        notification.setReceiver(receiver);
-        notification.setType(type);
-
-        Notification savedNotification = this.notificationRepository.save(notification);
-
-        if (receiver.getUser().getPushSubscription() == null) {
-            return;
-        }
-
-        NotificationResponse payload = this.notificationMapper.toDTO(savedNotification);
-
-        PushSubscription sub = receiver.getUser().getPushSubscription();
-
-        NotificationDTO notificationDTO = new NotificationDTO(sub.getEndpoint(), sub.getP256dh(), sub.getAuth(), payload);
-
-        this.pushNotificationService.sendNotification(notificationDTO);
     }
 }

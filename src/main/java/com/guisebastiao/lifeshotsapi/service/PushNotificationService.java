@@ -1,7 +1,8 @@
 package com.guisebastiao.lifeshotsapi.service;
 
-import com.guisebastiao.lifeshotsapi.dto.NotificationDTO;
+import com.guisebastiao.lifeshotsapi.entity.Profile;
+import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 
 public interface PushNotificationService {
-    void sendNotification(NotificationDTO dto);
+    void sendNotification(Profile sender, Profile receiver, String title, String body, NotificationType type);
 }
