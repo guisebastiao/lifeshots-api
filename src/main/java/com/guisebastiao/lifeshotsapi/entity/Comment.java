@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +32,9 @@ public class Comment extends Auditable {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
+
+    @Column(name = "is_removed", nullable = false)
+    private boolean isRemoved = false;
 
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
