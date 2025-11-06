@@ -9,6 +9,7 @@ public record StoryResponse(
     int likeCount,
     boolean isExpired,
     boolean isLiked,
+    boolean isOwner,
     Instant expiresAt,
     Instant createdAt,
     ProfileResponse profile,

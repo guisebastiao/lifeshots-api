@@ -18,4 +18,5 @@ public interface LikeStoryRepository extends JpaRepository<LikeStory, LikeStoryI
     boolean alreadyLikedStory(@Param("story") Story story, @Param("profile") Profile profile);
 
     Page<LikeStory> findAllByStory(Story story, Pageable pageable);
+    boolean existsByStoryAndProfile(Story story, Profile profile);
 }

@@ -11,6 +11,8 @@ public interface ProfileMapper {
 
     @Mapping(target = "handle", source = ".", qualifiedByName = "resolveGetHandle")
     @Mapping(target = "isOwnProfile", source = ".", qualifiedByName = "resolveIsOwnProfile")
+    @Mapping(target = "isFollowing", source = ".", qualifiedByName = "resolveIsFollowing")
+    @Mapping(target = "isFollower", source = ".", qualifiedByName = "resolveIsFollower")
     @Mapping(target = "isPrivate", source = "private")
     ProfileResponse toDTO(Profile entity);
 

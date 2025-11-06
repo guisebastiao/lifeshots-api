@@ -12,5 +12,7 @@ public record ProfileResponse(
         int followersCount,
         int followingCount,
         boolean isOwnProfile,
+        boolean isFollowing,
+        boolean isFollower,
         ProfilePictureResponse profilePicture
 ) { }

@@ -10,6 +10,8 @@ public record PostResponse(
         int likeCount,
         int commentCount,
         int shareCount,
+        boolean isOwner,
+        boolean isLiked,
         Instant createdAt,
         ProfileResponse profile,
         List<PostPictureResponse> postPictures
