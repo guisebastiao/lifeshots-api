@@ -26,7 +26,9 @@ public class StoryExpired {
         Instant now = Instant.now();
         List<Story> stories = this.storyRepository.findAllStoriesExpired(now);
 
-        stories.stream().peek(story -> story.setExpired(true));
+        if (stories.isEmpty()) return;
+
+        stories.forEach(story -> story.setExpired(true));
 
         this.storyRepository.saveAll(stories);
 

@@ -59,7 +59,11 @@ public class StoryServiceImpl implements StoryService {
     @Override
     @Transactional
     public DefaultResponse<StoryResponse> createStory(StoryRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile().getUser().getProfile();
+        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
+        if (profile.getStories().size() > 15) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Limite de stories atingido");
+        }
 
         Instant expiresAt = LocalDateTime.now().plusDays(1).toInstant(ZoneOffset.UTC);
 
@@ -73,9 +77,7 @@ public class StoryServiceImpl implements StoryService {
         String mimeType = dto.file().getContentType();
         String fileName = dto.file().getOriginalFilename();
 
-        try {
-            InputStream inputStream = dto.file().getInputStream();
-
+        try (InputStream inputStream = dto.file().getInputStream()) {
             this.minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getMinioBucket())
@@ -153,7 +155,7 @@ public class StoryServiceImpl implements StoryService {
                 orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão de editar esse story");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para manipular esse story");
         }
 
         return story;

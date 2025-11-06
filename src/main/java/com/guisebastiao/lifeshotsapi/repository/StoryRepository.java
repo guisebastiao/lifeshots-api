@@ -16,6 +16,6 @@ public interface StoryRepository extends JpaRepository<Story, UUID> {
     @Query("SELECT s FROM Story s WHERE s.id = :storyId AND s.isDeleted = FALSE")
     Optional<Story> findByIdAndNotDeleted(@Param("storyId") UUID storyId);
 
-    @Query("SELECT s FROM Story s WHERE s.expiresAt <= :expiresAt")
+    @Query("SELECT s FROM Story s WHERE s.expiresAt <= :expiresAt AND s.isExpired = false")
     List<Story> findAllStoriesExpired(@Param("expiresAt") Instant expiresAt);
 }

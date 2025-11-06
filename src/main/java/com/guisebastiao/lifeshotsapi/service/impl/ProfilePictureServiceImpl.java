@@ -79,9 +79,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
 
         ProfilePicture profilePictureSaved = this.profilePictureRepository.save(profilePicture);
 
-        try {
-            InputStream inputStream = file.getInputStream();
-
+        try (InputStream inputStream = file.getInputStream()) {
             this.minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getMinioBucket())

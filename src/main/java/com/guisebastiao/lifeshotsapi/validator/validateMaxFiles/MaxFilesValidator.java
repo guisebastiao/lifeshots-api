@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.lang.reflect.Field;
 import java.util.Collection;
 
 public class MaxFilesValidator implements ConstraintValidator<ValidateMaxFiles, Object> {
@@ -17,23 +18,39 @@ public class MaxFilesValidator implements ConstraintValidator<ValidateMaxFiles, 
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext context) {
-        switch (value) {
-            case null -> {
-                return true;
-            }
+        if (value == null) return true;
 
-            case MultipartFile file -> {
-                return !file.isEmpty();
-            }
+        if (value instanceof Collection<?> files) {
+            long count = files.stream()
+                    .filter(this::isValidFile)
+                    .count();
+            return count <= max;
+        }
 
-            case Collection<?> files -> {
-                long count = files.stream()
-                        .filter(item -> item instanceof MultipartFile file && !file.isEmpty())
-                        .count();
-                return count <= max;
-            }
+        if (value instanceof MultipartFile file) {
+            return !file.isEmpty();
+        }
 
-            default -> {
+        return false;
+    }
+
+    private boolean isValidFile(Object item) {
+        if (item == null) return false;
+
+        if (item instanceof MultipartFile file) {
+            return !file.isEmpty();
+        }
+
+        for (Field field : item.getClass().getDeclaredFields()) {
+            if (MultipartFile.class.isAssignableFrom(field.getType())) {
+                field.setAccessible(true);
+
+                try {
+                    MultipartFile file = (MultipartFile) field.get(item);
+                    if (file != null && !file.isEmpty()) {
+                        return true;
+                    }
+                } catch (IllegalAccessException ignored) {}
             }
         }
 
