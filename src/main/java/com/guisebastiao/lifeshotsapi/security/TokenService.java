@@ -2,7 +2,6 @@ package com.guisebastiao.lifeshotsapi.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.guisebastiao.lifeshotsapi.entity.User;
@@ -73,11 +72,9 @@ public class TokenService {
         }
     }
 
-    public Optional<DecodedJWT> decodeWithoutVerification(String token) {
-        try {
-            return Optional.of(JWT.decode(token));
-        } catch (JWTDecodeException ex) {
-            return Optional.empty();
-        }
+    public boolean isExpired(String token) {
+        DecodedJWT decodedJWT = JWT.decode(token);
+        Date expiration = decodedJWT.getExpiresAt();
+        return expiration.before(new Date());
     }
 }

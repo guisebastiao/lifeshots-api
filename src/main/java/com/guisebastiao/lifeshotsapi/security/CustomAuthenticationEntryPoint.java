@@ -19,6 +19,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         DefaultResponse<Void> responseBody = new DefaultResponse<Void>(false, "Por favor, realize seu login", null);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
+        response.addHeader("X-Auth-Status", "EXPIRED");
         response.getWriter().write(new ObjectMapper().writeValueAsString(responseBody));
     }
 }
