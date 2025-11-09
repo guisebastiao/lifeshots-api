@@ -2,12 +2,12 @@ package com.guisebastiao.lifeshotsapi.controller;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.RefreshRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.UserResponse;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,8 +25,8 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<DefaultResponse<UserResponse>> login(@RequestBody @Valid LoginRequest dto, HttpServletResponse httpResponse) {
-        DefaultResponse<UserResponse> response = this.authService.login(dto, httpResponse);
+    public ResponseEntity<DefaultResponse<LoginResponse>> login(@RequestBody @Valid LoginRequest dto) {
+        DefaultResponse<LoginResponse> response = this.authService.login(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -36,15 +36,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<DefaultResponse<Void>> logout(HttpServletResponse httpResponse) {
-        DefaultResponse<Void> response = this.authService.logout(httpResponse);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
     @PostMapping("/refresh")
-    public ResponseEntity<DefaultResponse<Void>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        DefaultResponse<Void> response = this.authService.refresh(httpRequest, httpResponse);
+    public ResponseEntity<DefaultResponse<RefreshResponse>> refresh(@RequestBody @Valid RefreshRequest dto) {
+        DefaultResponse<RefreshResponse> response = this.authService.refresh(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

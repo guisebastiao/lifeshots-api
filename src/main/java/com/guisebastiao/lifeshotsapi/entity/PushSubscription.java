@@ -26,11 +26,5 @@ public class PushSubscription extends Auditable {
     private User user;
 
     @Column(nullable = false)
-    private String endpoint;
-
-    @Column(nullable = false)
-    private String p256dh;
-
-    @Column(nullable = false)
-    private String auth;
+    private String token;
 }

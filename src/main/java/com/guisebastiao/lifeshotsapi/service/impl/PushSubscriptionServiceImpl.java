@@ -40,9 +40,7 @@ public class PushSubscriptionServiceImpl implements PushSubscriptionService {
 
         PushSubscription sub = new PushSubscription();
         sub.setUser(managedUser);
-        sub.setEndpoint(dto.endpoint());
-        sub.setP256dh(dto.keys().get("p256dh"));
-        sub.setAuth(dto.keys().get("auth"));
+        sub.setToken(dto.token());
 
         this.pushSubscriptionRepository.save(sub);
 
@@ -61,9 +59,7 @@ public class PushSubscriptionServiceImpl implements PushSubscriptionService {
         }
 
         this.pushSubscriptionRepository.delete(pushSubscription);
-
         user.setPushSubscription(null);
-
         this.userRepository.save(user);
 
         return new DefaultResponse<Void>(true, "Assinatura de notificações push removida com sucesso", null);

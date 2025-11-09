@@ -29,8 +29,6 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     private UserRepository userRepository;
 
-    @Value("${cookie.name.access.token}")
-    private String cookieNameAccessToken;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -54,14 +52,12 @@ public class SecurityFilter extends OncePerRequestFilter {
     }
 
     private String recoverAccessToken(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
+        String authHeader = request.getHeader("Authorization");
 
-        if(cookies == null) return null;
+        if(authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
 
-        return Arrays.stream(cookies)
-                .filter(cookie -> this.cookieNameAccessToken.equals(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
+        return authHeader.replace("Bearer ", "");
     }
 }

@@ -3,7 +3,10 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.RefreshRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UserResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
@@ -13,14 +16,10 @@ import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.TokenService;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,7 +27,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Arrays;
 import java.util.Optional;
 
 @Service
@@ -57,7 +55,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public DefaultResponse<UserResponse> login(LoginRequest dto, HttpServletResponse response) {
+    public DefaultResponse<LoginResponse> login(LoginRequest dto) {
         UsernamePasswordAuthenticationToken userAndPass = new UsernamePasswordAuthenticationToken(dto.email(), dto.password());
         Authentication authentication = this.authenticationManager.authenticate(userAndPass);
 
@@ -65,13 +63,11 @@ public class AuthServiceImpl implements AuthService {
 
         String accessToken = tokenService.generateAccessToken(user);
         String refreshToken = tokenService.generateRefreshToken(user);
+        UserResponse userResponse = this.userMapper.toDTO(user);
 
-        response.addCookie(this.generateCookie(this.cookieNameAccessToken, accessToken));
-        response.addCookie(this.generateCookie(this.cookieNameRefreshToken, refreshToken));
+        LoginResponse data = new LoginResponse(accessToken, refreshToken, userResponse);
 
-        UserResponse data = this.userMapper.toDTO(user);
-
-        return new DefaultResponse<UserResponse>(true, "Login efetuado com sucesso", data);
+        return new DefaultResponse<LoginResponse>(true, "Login efetuado com sucesso", data);
     }
 
     @Override
@@ -103,64 +99,40 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public DefaultResponse<Void> logout(HttpServletResponse response) {
-        response.addCookie(this.deleteCookie(this.cookieNameAccessToken));
-        response.addCookie(this.deleteCookie(this.cookieNameRefreshToken));
-        return new DefaultResponse<>(true, "Logout efetuado com sucesso", null);
-    }
-
-    @Override
     @Transactional
-    public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
-        String refreshToken = this.findCookieValue(this.cookieNameRefreshToken, request);
+    public DefaultResponse<RefreshResponse> refresh(RefreshRequest dto) {
+        DecodedJWT decodedRefreshToken = this.tokenService.validateRefreshToken(dto.refreshToken())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão expirada, faça seu login novamente"));
 
-        if(refreshToken == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida, faça o login novamente");
+        String refreshType = decodedRefreshToken.getClaim("type").asString();
+
+        if (!"refresh".equalsIgnoreCase(refreshType)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
         }
 
-        DecodedJWT decoded = tokenService.validateRefreshToken(refreshToken)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão expirada, faça o login novamente"));
+        DecodedJWT decodedAccessToken = this.tokenService.decodeWithoutVerification(dto.accessToken())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token inválido"));
 
-        String userId = decoded.getClaim("userId").asString();
+        String accessType = decodedAccessToken.getClaim("type").asString();
 
-        User user = this.userRepository.findById(UUIDConverter.toUUID(userId))
+        if (!"access".equalsIgnoreCase(accessType)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token inválido");
+        }
+
+        String accessUserId = decodedAccessToken.getClaim("userId").asString();
+        String refreshUserId = decodedRefreshToken.getClaim("userId").asString();
+
+        if (accessUserId == null || refreshUserId == null || !refreshUserId.equals(accessUserId)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Os tokens não pertencem ao mesmo usuário");
+        }
+
+        User user = this.userRepository.findById(UUIDConverter.toUUID(accessUserId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
 
         String newAccessToken = this.tokenService.generateAccessToken(user);
 
-        Cookie accessTokenCookie = this.generateCookie(this.cookieNameAccessToken, newAccessToken);
+        RefreshResponse data = new RefreshResponse(newAccessToken);
 
-        response.addCookie(accessTokenCookie);
-
-        return new DefaultResponse<Void>(true, "Sessão renovada com sucesso", null);
-    }
-
-    private Cookie deleteCookie(String name) {
-        Cookie cookie = new Cookie(name, null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        return cookie;
-    }
-
-    private Cookie generateCookie(String name, String token) {
-        Cookie cookie = new Cookie(name, token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/");
-        return cookie;
-    }
-
-    private String findCookieValue(String name, HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-
-        if(cookies == null) return null;
-
-        return Arrays.stream(cookies)
-                .filter(cookie -> name.equals(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
+        return new DefaultResponse<RefreshResponse>(true, "Sessão renovada com sucesso", data);
     }
 }

@@ -2,6 +2,7 @@ package com.guisebastiao.lifeshotsapi.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.guisebastiao.lifeshotsapi.entity.User;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.Optional;
 
 @Component
@@ -72,9 +72,11 @@ public class TokenService {
         }
     }
 
-    public boolean isExpired(String token) {
-        DecodedJWT decodedJWT = JWT.decode(token);
-        Date expiration = decodedJWT.getExpiresAt();
-        return expiration.before(new Date());
+    public Optional<DecodedJWT> decodeWithoutVerification(String token) {
+        try {
+            return Optional.of(JWT.decode(token));
+        } catch (JWTDecodeException ex) {
+            return Optional.empty();
+        }
     }
 }
