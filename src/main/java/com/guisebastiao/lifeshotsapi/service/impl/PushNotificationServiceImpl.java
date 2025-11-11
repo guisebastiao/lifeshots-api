@@ -3,9 +3,7 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.config.NotificationQueueConfig;
 import com.guisebastiao.lifeshotsapi.dto.NotificationDTO;
 import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
-import com.guisebastiao.lifeshotsapi.entity.Notification;
-import com.guisebastiao.lifeshotsapi.entity.Profile;
-import com.guisebastiao.lifeshotsapi.entity.PushSubscription;
+import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
@@ -50,6 +48,10 @@ public class PushNotificationServiceImpl implements PushNotificationService {
 
         Notification savedNotification = this.notificationRepository.save(notification);
 
+        if (!this.isNotifyReceiver(type, receiver)) {
+            return;
+        }
+
         PushSubscription subscription = receiver.getUser().getPushSubscription();
 
         if (subscription == null || subscription.getId() == null) {
@@ -66,6 +68,23 @@ public class PushNotificationServiceImpl implements PushNotificationService {
     @RabbitListener(queues = NotificationQueueConfig.NOTIFICATION_QUEUE)
     public void consumer(NotificationDTO dto) {
         this.sendExpoPush(dto.token(), dto.payload());
+    }
+
+    private boolean isNotifyReceiver (NotificationType type, Profile receiver) {
+        NotificationSetting notificationSetting = receiver.getUser().getNotificationSetting();
+
+        if (!notificationSetting.isNotifyAllNotifications()) {
+            return false;
+        }
+
+        return switch (type) {
+            case LIKE_IN_POST -> notificationSetting.isNotifyLikeInPost();
+            case COMMENT_ON_POST -> notificationSetting.isNotifyCommentOnPost();
+            case LIKE_IN_COMMENT -> notificationSetting.isNotifyLikeInComment();
+            case LIKE_IN_COMMENT_REPLY -> notificationSetting.isNotifyLikeInCommentReply();
+            case NEW_FOLLOWERS -> notificationSetting.isNotifyNewFollowers();
+            case LIKE_IN_STORY -> notificationSetting.isNotifyLikeInStory();
+        };
     }
 
     private void sendExpoPush(String token, NotificationResponse payload) {

@@ -40,6 +40,9 @@ public class User extends Auditable implements UserDetails {
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private PushSubscription pushSubscription;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private NotificationSetting notificationSetting;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecoverPassword> recoverPasswords;
 

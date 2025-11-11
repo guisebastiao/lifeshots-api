@@ -9,6 +9,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UserResponse;
+import com.guisebastiao.lifeshotsapi.entity.NotificationSetting;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
@@ -83,12 +84,15 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Nome de usuário já está em uso");
         }
 
+        NotificationSetting notificationSetting = new NotificationSetting();
+
         User user = this.userMapper.toEntity(dto);
         user.setPassword(this.passwordEncoder.encode(dto.password()));
 
         Profile profile = new Profile();
         profile.setUser(user);
         user.setProfile(profile);
+        user.setNotificationSetting(notificationSetting);
 
         User savedUser = this.userRepository.save(user);
         UserResponse userResponse = this.userMapper.toDTO(savedUser);
