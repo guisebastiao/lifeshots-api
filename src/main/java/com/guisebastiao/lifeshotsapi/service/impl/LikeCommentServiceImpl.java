@@ -42,7 +42,7 @@ public class LikeCommentServiceImpl implements LikeCommentService {
         boolean alreadyLiked = this.likeCommentRepository.existsByCommentAndProfile(comment, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ? "Você já curtiu essa publicação" : "Você ainda não curtiu essa publicação");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ? "Você já curtiu esse comentário" : "Você ainda não curtiu esse comentário");
         }
 
         if (dto.like()) {
