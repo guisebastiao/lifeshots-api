@@ -40,9 +40,6 @@ public class CommentServiceImpl implements CommentService {
     private PostRepository postRepository;
 
     @Autowired
-    private ProfileRepository profileRepository;
-
-    @Autowired
     private AuthenticatedUserProvider authenticatedUserProvider;
 
     @Autowired
@@ -68,7 +65,7 @@ public class CommentServiceImpl implements CommentService {
         post.setCommentCount(post.getCommentCount() + 1);
         this.postRepository.save(post);
 
-        String body = String.format("Você recebey um novo comentário de %s", profile.getUser().getHandle());
+        String body = String.format("Você recebeu um novo comentário de %s", profile.getUser().getHandle());
         this.pushNotificationService.sendNotification(profile, post.getProfile(), "Alguém comentou em sua publicação", body, NotificationType.COMMENT_ON_POST);
 
         CommentResponse data = this.commentMapper.toDTO(savedComment);
@@ -82,12 +79,6 @@ public class CommentServiceImpl implements CommentService {
 
         Post post = this.postRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(postId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
-
-        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(post.getProfile(), profile);
-
-        if (post.getProfile().isPrivate() && !mutualFollow && !profile.getId().equals(post.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, você não tem permissão para verificar essa publicação");
-        }
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt")));
 
@@ -143,7 +134,7 @@ public class CommentServiceImpl implements CommentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
 
         Comment comment = this.commentRepository.findByIdAndNotDeletedAndNotRemoved(UUIDConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrado"));
 
         if (!post.getProfile().getId().equals(profile.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não permissão para remover esse comentário");

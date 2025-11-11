@@ -30,6 +30,9 @@ public class ReplyComment extends Auditable {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @Column(name = "is_removed", nullable = false)
+    private boolean isRemoved = false;
+
     @ManyToOne
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
