@@ -61,7 +61,7 @@ public class StoryServiceImpl implements StoryService {
     public DefaultResponse<StoryResponse> createStory(StoryRequest dto) {
         Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        if (profile.getStories().size() > 15) {
+        if (this.storyRepository.countStoriesByProfile(profile) > 15) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Limite de stories atingido");
         }
 
