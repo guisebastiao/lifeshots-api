@@ -1,6 +1,8 @@
 package com.guisebastiao.lifeshotsapi.repository;
 
 import com.guisebastiao.lifeshotsapi.entity.Profile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +22,13 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
           AND f2.follower = :profileB AND f2.following = :profileA
     """)
     boolean profilesFollowEachOther(@Param("profileA") Profile profileA, @Param("profileB") Profile profileB);
+
+    @Query("""
+        SELECT p
+        FROM Profile p
+        WHERE 
+            LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(p.user.handle) LIKE LOWER(CONCAT('%', :search, '%'))
+    """)
+    Page<Profile> searchProfiles(@Param("search") String search, Pageable pageable);
 }

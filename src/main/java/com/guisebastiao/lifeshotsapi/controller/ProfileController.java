@@ -1,7 +1,10 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
+import com.guisebastiao.lifeshotsapi.dto.PageResponse;
+import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfileRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import jakarta.validation.Valid;
@@ -20,6 +23,12 @@ public class ProfileController {
     @GetMapping("/me")
     public ResponseEntity<DefaultResponse<ProfileResponse>> me() {
         DefaultResponse<ProfileResponse> response = this.profileService.me();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<DefaultResponse<PageResponse<ProfileResponse>>> searchProfile(@Valid SearchProfileRequest dto, @Valid PaginationFilter pagination) {
+        DefaultResponse<PageResponse<ProfileResponse>> response = this.profileService.searchProfile(dto, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

@@ -93,6 +93,7 @@ public class AuthServiceImpl implements AuthService {
         profile.setUser(user);
         user.setProfile(profile);
         user.setNotificationSetting(notificationSetting);
+        notificationSetting.setUser(user);
 
         User savedUser = this.userRepository.save(user);
         UserResponse userResponse = this.userMapper.toDTO(savedUser);

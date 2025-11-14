@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface FollowRepository extends JpaRepository<Follow, FollowId> {
@@ -22,4 +23,18 @@ public interface FollowRepository extends JpaRepository<Follow, FollowId> {
     Optional<Follow> findByFollowingAndFollower(Profile following, Profile follower);
     boolean existsByFollowerAndFollowing(Profile follower, Profile following);
     boolean existsByFollowingAndFollower(Profile following, Profile follower);
+
+    @Query("""
+        SELECT DISTINCT y2.following
+        FROM Follow y1
+             JOIN Follow y2 ON y1.following.id = y2.follower.id
+        WHERE y1.follower.id = :profileId
+          AND y2.following.id <> :profileId
+          AND y2.following.id NOT IN (
+                SELECT f.following.id
+                FROM Follow f
+                WHERE f.follower.id = :profileId
+          )
+    """)
+    Page<Profile> findFriendRecommendations(UUID profileId, Pageable pageable);
 }
