@@ -48,12 +48,6 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private UserMapper userMapper;
 
-    @Value("${cookie.name.access.token}")
-    private String cookieNameAccessToken;
-
-    @Value("${cookie.name.refresh.token}")
-    private String cookieNameRefreshToken;
-
     @Override
     @Transactional
     public DefaultResponse<LoginResponse> login(LoginRequest dto) {

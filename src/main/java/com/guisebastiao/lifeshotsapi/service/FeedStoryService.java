@@ -10,5 +10,4 @@ import java.util.List;
 
 public interface FeedStoryService {
     DefaultResponse<PageResponse<StoryFeedResponse>> feed(PaginationFilter pagination);
-    DefaultResponse<List<StoryResponse>> findMyStories();
 }

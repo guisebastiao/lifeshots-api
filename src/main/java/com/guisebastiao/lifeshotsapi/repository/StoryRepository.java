@@ -49,4 +49,21 @@ public interface StoryRepository extends JpaRepository<Story, UUID> {
     ORDER BY s.createdAt DESC
     """)
     Page<Story> findAllStoriesFromFriends(@Param("profile") Profile profile, Pageable pageable);
+
+    @Query("""
+      SELECT COUNT(DISTINCT s.profile)
+      FROM Story s
+      WHERE s.profile IN (
+        SELECT f.following FROM Follow f WHERE f.follower = :profile
+      )
+      AND (
+        s.profile.isPrivate = false
+        OR EXISTS (
+          SELECT 1 FROM Follow f2 WHERE f2.follower = s.profile AND f2.following = :profile
+        )
+      )
+      AND s.isDeleted = false
+      AND s.isExpired = false
+    """)
+    long countDistinctProfilesFromFriends(@Param("profile") Profile profile);
 }
