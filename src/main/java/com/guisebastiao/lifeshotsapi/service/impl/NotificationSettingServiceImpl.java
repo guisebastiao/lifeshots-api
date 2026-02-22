@@ -9,78 +9,71 @@ import com.guisebastiao.lifeshotsapi.mapper.NotificationSettingMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.NotificationSettingService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
 public class NotificationSettingServiceImpl implements NotificationSettingService {
 
-    @Autowired
-    private NotificationSettingRepository notificationSettingRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final NotificationSettingMapper notificationSettingMapper;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private NotificationSettingMapper notificationSettingMapper;
+    public NotificationSettingServiceImpl(NotificationSettingRepository notificationSettingRepository, AuthenticatedUserProvider authenticatedUserProvider, NotificationSettingMapper notificationSettingMapper) {
+        this.notificationSettingRepository = notificationSettingRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.notificationSettingMapper = notificationSettingMapper;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<NotificationSettingResponse> disableAllNotifications() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
         NotificationSetting notificationSetting = user.getNotificationSetting();
 
         notificationSetting.disableAllNotifications();
 
-        this.notificationSettingRepository.save(notificationSetting);
+        notificationSettingRepository.save(notificationSetting);
 
-        NotificationSettingResponse data = this.notificationSettingMapper.toDTO(notificationSetting);
-
-        return new DefaultResponse<NotificationSettingResponse>(true, "Todas as notificações foram desabilitadas", data);
+        return DefaultResponse.success(notificationSettingMapper.toDTO(notificationSetting));
     }
 
     @Override
     @Transactional
     public DefaultResponse<NotificationSettingResponse> enableAllNotifications() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
         NotificationSetting notificationSetting = user.getNotificationSetting();
 
         notificationSetting.enableAllNotifications();
 
-        this.notificationSettingRepository.save(notificationSetting);
+        notificationSettingRepository.save(notificationSetting);
 
-        NotificationSettingResponse data = this.notificationSettingMapper.toDTO(notificationSetting);
-
-        return new DefaultResponse<NotificationSettingResponse>(true, "Todas as notificações foram habilitadas", data);
+        return DefaultResponse.success(notificationSettingMapper.toDTO(notificationSetting));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<NotificationSettingResponse> findNotificationSetting() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
         NotificationSetting notificationSetting = user.getNotificationSetting();
 
-        NotificationSettingResponse data = this.notificationSettingMapper.toDTO(notificationSetting);
-
-        return new DefaultResponse<NotificationSettingResponse>(true, "Configuração das notificações foram retornadas com sucesso", data);
+        return DefaultResponse.success(notificationSettingMapper.toDTO(notificationSetting));
     }
 
     @Override
     @Transactional
     public DefaultResponse<NotificationSettingResponse> updateNotificationSetting(NotificationSettingRequest dto) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
         NotificationSetting notificationSetting = user.getNotificationSetting();
 
-        this.notificationSettingMapper.updateNotificationSetting(dto, notificationSetting);
+        notificationSettingMapper.updateNotificationSetting(dto, notificationSetting);
 
-        this.notificationSettingRepository.save(notificationSetting);
+        notificationSettingRepository.save(notificationSetting);
 
-        NotificationSettingResponse data = this.notificationSettingMapper.toDTO(notificationSetting);
-
-        return new DefaultResponse<NotificationSettingResponse>(true, "Notificações foram atualizadas", data);
+        return DefaultResponse.success(notificationSettingMapper.toDTO(notificationSetting));
     }
 }

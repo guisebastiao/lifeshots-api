@@ -1,10 +1,11 @@
 package com.guisebastiao.lifeshotsapi.service;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 
+import java.util.List;
+
 public interface TrendingService {
-    DefaultResponse<PageResponse<PostResponse>> trending(PaginationFilter pagination);
+    DefaultResponse<List<PostResponse>> trending(PaginationParam pagination);
 }

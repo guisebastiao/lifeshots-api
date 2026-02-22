@@ -3,6 +3,7 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.config.MinioConfig;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.StoryRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.StoryUpdateRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.StoryResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.Story;
@@ -17,8 +18,9 @@ import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,59 +28,60 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class StoryServiceImpl implements StoryService {
 
-    @Autowired
-    private StoryRepository storyRepository;
+    private final StoryRepository storyRepository;
+    private final StoryPictureRepository storyPictureRepository;
+    private final ProfileRepository profileRepository;
+    private final StoryMapper storyMapper;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final TokenGenerator tokenGenerator;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private StoryPictureRepository storyPictureRepository;
-
-    @Autowired
-    private ProfileRepository profileRepository;
-
-    @Autowired
-    private StoryMapper storyMapper;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private TokenGenerator tokenGenerator;
-
-    @Autowired
-    private MinioClient minioClient;
-
-    @Autowired
-    private MinioConfig minioConfig;
+    public StoryServiceImpl(StoryRepository storyRepository, StoryPictureRepository storyPictureRepository, ProfileRepository profileRepository, StoryMapper storyMapper, AuthenticatedUserProvider authenticatedUserProvider, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.storyRepository = storyRepository;
+        this.storyPictureRepository = storyPictureRepository;
+        this.profileRepository = profileRepository;
+        this.storyMapper = storyMapper;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.tokenGenerator = tokenGenerator;
+        this.minioClient = minioClient;
+        this.minioConfig = minioConfig;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<StoryResponse> createStory(StoryRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        if (this.storyRepository.countStoriesByProfile(profile) > 15) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Limite de stories atingido");
+        if (storyRepository.countStoriesByProfile(profile) > 15) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.limit-bad-request"));
         }
 
         Instant expiresAt = LocalDateTime.now().plusDays(1).toInstant(ZoneOffset.UTC);
 
-        Story story = this.storyMapper.toEntity(dto);
+        Story story = storyMapper.toEntity(dto);
         story.setProfile(profile);
         story.setExpiresAt(expiresAt);
 
-        Story savedStory = this.storyRepository.save(story);
+        Story savedStory = storyRepository.save(story);
 
-        String fileKey = this.tokenGenerator.generateToken(32);
+        String fileKey = tokenGenerator.generateToken(32);
         String mimeType = dto.file().getContentType();
         String fileName = dto.file().getOriginalFilename();
 
         try (InputStream inputStream = dto.file().getInputStream()) {
-            this.minioClient.putObject(
+            minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getMinioBucket())
                             .object(minioConfig.getStoryPicturesFolder() + fileKey)
@@ -87,7 +90,7 @@ public class StoryServiceImpl implements StoryService {
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falha ao ler o arquivo enviado, verifique se o arquivo é válido", error);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.file-bad-request"), error);
         }
 
         StoryPicture storyPicture = new StoryPicture();
@@ -96,68 +99,79 @@ public class StoryServiceImpl implements StoryService {
         storyPicture.setFileName(fileName);
         storyPicture.setMimeType(mimeType);
 
-        this.storyPictureRepository.save(storyPicture);
+        storyPictureRepository.save(storyPicture);
 
         savedStory.setStoryPicture(storyPicture);
 
-        StoryResponse data = this.storyMapper.toDTO(savedStory);
-
-        return new DefaultResponse<StoryResponse>(true, "Story criado com sucesso", data);
+        return DefaultResponse.success(storyMapper.toDTO(savedStory));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<StoryResponse> findStoryById(String storyId) {
-        Profile profileAuth = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Story story = this.storyRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(storyId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
+        Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId)).
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-by-id.not-found")));
 
-        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(story.getProfile(), profileAuth);
+        boolean mutualFollow = profileRepository.profilesFollowEachOther(story.getProfile(), profile);
 
-        if (story.getProfile().isPrivate() && !mutualFollow && !profileAuth.getId().equals(story.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, você não tem permissão para verificar esse story");
+        if (story.getProfile().isPrivate() && !mutualFollow && !profile.getId().equals(story.getProfile().getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.story-service.methods.find-story-by-id.forbidden"));
         }
 
-        StoryResponse data = this.storyMapper.toDTO(story);
+        return DefaultResponse.success(storyMapper.toDTO(story));
+    }
 
-        return new DefaultResponse<StoryResponse>(true, "Story retornado com sucesso", data);
+    @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<StoryResponse>> findStoriesByAuthUser() {
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
+        List<Story> stories = storyRepository.findAllStoriesByProfile(profile);
+
+        List<StoryResponse> data = stories.stream().map(storyMapper::toDTO).toList();
+
+        return DefaultResponse.success(data);
     }
 
     @Override
     @Transactional
-    public DefaultResponse<StoryResponse> updateStory(String storyId, StoryRequest dto) {
-        Story story = this.findStoryAndBelongsToTheProfile(storyId);
+    public DefaultResponse<StoryResponse> updateStory(String storyId, StoryUpdateRequest dto) {
+        Story story = findStoryAndBelongsToTheProfile(storyId);
 
-        this.storyMapper.updateStory(dto, story);
+        story.setCaption(dto.caption());
 
-        Story savedStory = this.storyRepository.save(story);
+        Story savedStory = storyRepository.save(story);
 
-        StoryResponse data = this.storyMapper.toDTO(savedStory);
-
-        return new DefaultResponse<StoryResponse>(true, "Story editado com sucesso", data);
+        return DefaultResponse.success(storyMapper.toDTO(savedStory));
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> deleteStory(String storyId) {
-        Story story = this.findStoryAndBelongsToTheProfile(storyId);
+        Story story = findStoryAndBelongsToTheProfile(storyId);
 
         story.setDeleted(true);
-        this.storyRepository.save(story);
+        storyRepository.save(story);
 
-        return new DefaultResponse<Void>(true, "Story deletado com sucesso", null);
+        return DefaultResponse.success();
     }
 
     private Story findStoryAndBelongsToTheProfile(String storyId) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile().getUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile().getUser().getProfile();
 
-        Story story = this.storyRepository.findById(UUIDConverter.toUUID(storyId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
+        Story story = storyRepository.findById(uuidConverter.toUUID(storyId)).
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.not-found")));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para manipular esse story");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.forbidden"));
         }
 
         return story;
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

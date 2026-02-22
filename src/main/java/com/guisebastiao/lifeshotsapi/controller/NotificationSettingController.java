@@ -1,21 +1,24 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.NotificationSettingControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.NotificationSettingRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.NotificationSettingResponse;
 import com.guisebastiao.lifeshotsapi.service.NotificationSettingService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/notification-setting")
-public class NotificationSettingController {
+public class NotificationSettingController implements NotificationSettingControllerDocs {
 
-    @Autowired
-    private NotificationSettingService notificationSettingService;
+    private final NotificationSettingService notificationSettingService;
+
+    public NotificationSettingController(NotificationSettingService notificationSettingService) {
+        this.notificationSettingService = notificationSettingService;
+    }
 
     @PostMapping("/disable-all")
     public ResponseEntity<DefaultResponse<NotificationSettingResponse>> disableAllNotifications() {

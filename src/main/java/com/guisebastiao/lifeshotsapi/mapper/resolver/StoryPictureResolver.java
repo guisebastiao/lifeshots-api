@@ -6,7 +6,6 @@ import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.http.Method;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,11 +13,13 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class StoryPictureResolver {
 
-    @Autowired
-    private MinioClient minioClient;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
 
-    @Autowired
-    private MinioConfig minioConfig;
+    public StoryPictureResolver(MinioClient minioClient, MinioConfig minioConfig) {
+        this.minioClient = minioClient;
+        this.minioConfig = minioConfig;
+    }
 
     @Named("getStoryPictureUrl")
     public String getStoryPictureUrl(StoryPicture storyPicture) {

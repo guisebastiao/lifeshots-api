@@ -1,17 +1,14 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Entity
+@Table(name = "follows")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "follows")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Follow extends Auditable {
 
     @EmbeddedId

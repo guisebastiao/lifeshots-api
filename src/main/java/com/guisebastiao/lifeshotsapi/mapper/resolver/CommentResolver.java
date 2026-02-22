@@ -5,23 +5,24 @@ import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.repository.LikeCommentRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CommentResolver {
 
-    @Autowired
-    private LikeCommentRepository likeCommentRepository;
+    private final LikeCommentRepository likeCommentRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
+    public CommentResolver(LikeCommentRepository likeCommentRepository, AuthenticatedUserProvider authenticatedUserProvider) {
+        this.likeCommentRepository = likeCommentRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+    }
 
     @Named("resolveIsOwner")
     public boolean resolveIsOwner(Comment comment) {
         if (comment == null || comment.getProfile() == null) return false;
 
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return comment.getProfile().getId().equals(profile.getId());
     }
 
@@ -29,7 +30,7 @@ public class CommentResolver {
     public boolean resolveIsLiked(Comment comment) {
         if (comment == null) return false;
 
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
-        return this.likeCommentRepository.existsByCommentAndProfile(comment, profile);
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        return likeCommentRepository.existsByCommentAndProfile(comment, profile);
     }
 }

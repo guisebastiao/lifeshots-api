@@ -1,23 +1,22 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "profiles")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "profiles")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Profile extends Auditable {
 
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @OneToOne
@@ -25,7 +24,7 @@ public class Profile extends Auditable {
     @JoinColumn(name = "id", nullable = false, unique = true)
     private User user;
 
-    @Column(nullable = false, length = 250)
+    @Column(length = 250)
     private String fullName;
 
     @Column(length = 300)
@@ -47,38 +46,38 @@ public class Profile extends Auditable {
     private ProfilePicture profilePicture;
 
     @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Follow> following;
+    private List<Follow> following = new ArrayList<>();
 
     @OneToMany(mappedBy = "following", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Follow> followers;
+    private List<Follow> followers = new ArrayList<>();
 
     @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Notification> receivers;
+    private List<Notification> receivers = new ArrayList<>();
 
     @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Notification> senders;
+    private List<Notification> senders = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Story> stories;
+    private List<Story> stories = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Post> posts;
+    private List<Post> posts = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments;
+    private List<Comment> comments = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReplyComment> replyComments;
+    private List<ReplyComment> replyComments = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikeStory> likeStories;
+    private List<LikeStory> likeStories = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikePost> likePosts;
+    private List<LikePost> likePosts = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikeComment> likeComments;
+    private List<LikeComment> likeComments = new ArrayList<>();
 
     @OneToMany(mappedBy = "profile",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikeReplyComment> likeReplyComments;
+    private List<LikeReplyComment> likeReplyComments = new ArrayList<>();
 }

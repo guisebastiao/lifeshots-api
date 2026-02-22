@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = MimetypeValidator.class)
 public @interface ValidateMimetype {
     String[] allowed();
-    String message() default "Tipo de arquivo não suportado";
+    String message() default "File format not supported.";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

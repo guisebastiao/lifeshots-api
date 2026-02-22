@@ -1,24 +1,22 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Entity
+@Table(name = "recover_passwords")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "recover_passwords")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class RecoverPassword extends Auditable {
 
     @Id
-    @GeneratedValue
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private UUID id;
 
     @ManyToOne

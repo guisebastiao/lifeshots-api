@@ -11,9 +11,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LikePostRepository extends JpaRepository<LikePost, LikePostId> {
 
+    Page<LikePost> findAllByPost(Post post, Pageable pageable);
+
+    boolean existsByPostAndProfile(Post post, Profile profile);
+
     @Query("SELECT COUNT(lp) > 0 FROM LikePost lp WHERE lp.post = :post AND lp.profile = :profile")
     boolean alreadyLikedPost(@Param("post") Post post, @Param("profile") Profile profile);
 
-    Page<LikePost> findAllByPost(Post post, Pageable pageable);
-    boolean existsByPostAndProfile(Post post, Profile profile);
 }

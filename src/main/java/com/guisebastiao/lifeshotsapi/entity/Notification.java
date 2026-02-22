@@ -1,41 +1,43 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
+import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
 import java.util.UUID;
 
+@Entity
+@Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "notifications")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Notification extends Auditable {
 
     @Id
-    @GeneratedValue
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)
     private String title;
 
     @Column(nullable = false)
-    private String body;
+    private String message;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(columnDefinition = "notification_type", nullable = false)
     private NotificationType type;
 
     @Column(nullable = false)
     private boolean read = false;
 
-    @Column(name = "read_at")
-    private Instant readAt;
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)

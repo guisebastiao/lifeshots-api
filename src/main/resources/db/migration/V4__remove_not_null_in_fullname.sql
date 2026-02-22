@@ -1,1 +1,0 @@
-ALTER TABLE profiles ALTER COLUMN full_name DROP NOT NULL;

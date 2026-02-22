@@ -1,22 +1,25 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.PostControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.PostRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.PostUpdateRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.service.PostService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/posts")
-public class PostController {
+public class PostController implements PostControllerDocs {
 
-    @Autowired
-    private PostService postService;
+    private final PostService postService;
+
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
 
     @PostMapping
     public ResponseEntity<DefaultResponse<PostResponse>> createPost(@ModelAttribute @Valid PostRequest dto) {

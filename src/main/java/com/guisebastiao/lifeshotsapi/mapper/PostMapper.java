@@ -16,5 +16,6 @@ public interface PostMapper {
     PostResponse toDTO(Post entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "postPictures", ignore = true)
     void updatePost(PostUpdateRequest request, @MappingTarget Post entity);
 }

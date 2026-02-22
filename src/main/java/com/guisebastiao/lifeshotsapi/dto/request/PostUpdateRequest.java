@@ -1,6 +1,6 @@
 package com.guisebastiao.lifeshotsapi.dto.request;
 
-import com.guisebastiao.lifeshotsapi.validator.validateFileSize.ValidateFileSize;
+import com.guisebastiao.lifeshotsapi.validator.validateFilesize.ValidateFilesize;
 import com.guisebastiao.lifeshotsapi.validator.validateMaxFiles.ValidateMaxFiles;
 import com.guisebastiao.lifeshotsapi.validator.validateMimetype.ValidateMimetype;
 import org.hibernate.validator.constraints.Length;
@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.UUID;
 
 public record PostUpdateRequest(
-        @Length(max = 300, message = "A descrição da publicação tem que ser menor que 300 caracteres")
+        @Length(max = 300, message = "{validation.post-update-request.content.length}")
         String content,
 
-        @ValidateMaxFiles(max = 10, message = "São permitidas apenas dez imagens por publicação")
-        @ValidateFileSize(max = 5 * 1024 * 1024, message = "A imagem do story deve ter no máximo 5MB")
-        @ValidateMimetype(allowed = {"image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"})
+        @ValidateMaxFiles(max = 10, message = "{validation.post-update-request.files.validate-max-files}")
+        @ValidateFilesize(max = 5 * 1024 * 1024, message = "{validation.post-update-request.files.validate-filesize}")
+        @ValidateMimetype(allowed = {"image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"}, message = "{validation.post-update-request.files.validate-mimetype}")
         List<MultipartFile> newFiles,
 
         List<UUID> removeFiles

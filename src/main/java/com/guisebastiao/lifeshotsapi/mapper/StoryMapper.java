@@ -16,7 +16,4 @@ public interface StoryMapper {
     StoryResponse toDTO(Story entity);
 
     StoryItemResponse toItemDTO(StoryResponse dto);
-
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateStory(StoryRequest request, @MappingTarget Story entity);
 }

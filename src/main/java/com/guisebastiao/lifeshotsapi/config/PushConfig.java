@@ -1,24 +1,35 @@
 package com.guisebastiao.lifeshotsapi.config;
 
+import nl.martijndwars.webpush.PushService;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
+
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 
 @Configuration
 public class PushConfig {
 
-    private static final String EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+    @Value("${vapid.public.key}")
+    private String publicKey;
+
+    @Value("${vapid.private.key}")
+    private String privateKey;
+
+    @Value("${vapid.contact.email}")
+    private String contactEmail;
 
     @Bean
-    public WebClient expoWebClient() {
-        return WebClient.builder()
-                .baseUrl(EXPO_PUSH_URL)
-                .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .exchangeStrategies(ExchangeStrategies.builder()
-                        .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2 * 1024 * 1024))
-                        .build())
-                .build();
+    public PushService pushService() throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
+        Security.addProvider(new BouncyCastleProvider());
+        PushService service = new PushService();
+        service.setPublicKey(this.publicKey);
+        service.setPrivateKey(this.privateKey);
+        service.setSubject(this.contactEmail);
+        return service;
     }
 }

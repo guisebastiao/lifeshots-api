@@ -1,21 +1,25 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.RecoverPasswordControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
+import com.guisebastiao.lifeshotsapi.dto.params.RecoverPasswordTokenParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ForgotPasswordRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RecoverPasswordRequest;
 import com.guisebastiao.lifeshotsapi.service.RecoverPasswordService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/recover-password")
-public class RecoverPasswordController {
+public class RecoverPasswordController implements RecoverPasswordControllerDocs {
 
-    @Autowired
-    private RecoverPasswordService recoverPasswordService;
+    private final RecoverPasswordService recoverPasswordService;
+
+    public RecoverPasswordController(RecoverPasswordService recoverPasswordService) {
+        this.recoverPasswordService = recoverPasswordService;
+    }
 
     @PostMapping("/forgot")
     public ResponseEntity<DefaultResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest dto) {
@@ -23,9 +27,9 @@ public class RecoverPasswordController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PutMapping("/{token}")
-    public ResponseEntity<DefaultResponse<Void>> recoverPassword(@PathVariable String token, @RequestBody @Valid RecoverPasswordRequest dto) {
-        DefaultResponse<Void> response = recoverPasswordService.recoverPassword(token, dto);
+    @PutMapping
+    public ResponseEntity<DefaultResponse<Void>> recoverPassword(@Valid RecoverPasswordTokenParam param, @RequestBody @Valid RecoverPasswordRequest dto) {
+        DefaultResponse<Void> response = recoverPasswordService.recoverPassword(param, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

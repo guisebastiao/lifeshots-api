@@ -8,8 +8,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.PostPicture;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
+import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
-import com.guisebastiao.lifeshotsapi.repository.PostPictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
@@ -19,8 +19,9 @@ import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,74 +34,69 @@ import java.util.UUID;
 @Service
 public class PostServiceImpl implements PostService {
 
-    @Autowired
-    private PostRepository postRepository;
+    private final PostRepository postRepository;
+    private final ProfileRepository profileRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PostMapper postMapper;
+    private final TokenGenerator tokenGenerator;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private PostPictureRepository postPictureRepository;
-
-    @Autowired
-    private ProfileRepository profileRepository;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private PostMapper postMapper;
-
-    @Autowired
-    private TokenGenerator tokenGenerator;
-
-    @Autowired
-    private MinioClient minioClient;
-
-    @Autowired
-    private MinioConfig minioConfig;
+    public PostServiceImpl(PostRepository postRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, PostMapper postMapper, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.postRepository = postRepository;
+        this.profileRepository = profileRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.postMapper = postMapper;
+        this.tokenGenerator = tokenGenerator;
+        this.minioClient = minioClient;
+        this.minioConfig = minioConfig;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<PostResponse> createPost(PostRequest dto) {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.postMapper.toEntity(dto);
+        Post post = postMapper.toEntity(dto);
         post.setProfile(profile);
 
-        Post savedPost = this.postRepository.save(post);
+        Post savedPost = postRepository.save(post);
 
-        List<PostPicture> postPictures = this.generatePostPictures(dto.files(), post);
+        List<PostPicture> postPictures = generatePostPictures(dto.files(), post);
 
         savedPost.setPostPictures(postPictures);
 
         profile.setPostsCount(profile.getPostsCount() + 1);
         profileRepository.save(profile);
 
-        PostResponse data = this.postMapper.toDTO(savedPost);
-
-        return new DefaultResponse<PostResponse>(true, "Publicação criada com sucesso", data);
+        return DefaultResponse.success(postMapper.toDTO(savedPost));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<PostResponse> findPostById(String postId) {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.postRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+        Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-id.not-found")));
 
-        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(post.getProfile(), profileAuth);
+        boolean mutualFollow = profileRepository.profilesFollowEachOther(post.getProfile(), profileAuth);
 
         if (post.getProfile().isPrivate() && !mutualFollow && !profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, você não tem permissão para verificar essa publicação");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.post-service.methods.find-post-by-id.forbidden"));
         }
 
-        PostResponse data = this.postMapper.toDTO(post);
-
-        return new DefaultResponse<PostResponse>(true, "Publicação retornada com sucesso", data);
+        return DefaultResponse.success(postMapper.toDTO(post));
     }
 
     @Override
     @Transactional
     public DefaultResponse<PostResponse> updatePost(String postId, PostUpdateRequest dto) {
-        Post post = this.findPostAndBelongsToTheProfile(postId);
+        Post post = findPostAndBelongsToTheProfile(postId);
 
         List<UUID> removeFiles = dto.removeFiles() != null ? dto.removeFiles() : List.of();
         List<MultipartFile> newFiles = dto.newFiles() != null ? dto.newFiles() : List.of();
@@ -108,45 +104,47 @@ public class PostServiceImpl implements PostService {
         int totalPictures = post.getPostPictures().size() - removeFiles.size() + newFiles.size();
 
         if (totalPictures > 10) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A publicação não pode ter mais de dez imagens");
+            throw new BusinessValidationException("newFiles", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
         }
 
         if (totalPictures <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A publicação tem que possuir pelo menos uma imagem");
+            throw new BusinessValidationException("removeFiles", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
         }
 
         if (!removeFiles.isEmpty()) {
-            List<PostPicture> postPictures = this.postPictureRepository.findAllById(removeFiles);
+            List<PostPicture> postPictures = post.getPostPictures().stream()
+                    .filter(pp -> removeFiles.contains(pp.getId()))
+                    .toList();
+
+            if (postPictures.size() != removeFiles.size()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.update-post.bad-request-invalid-pictures"));
+            }
 
             postPictures.forEach(postPicture -> {
                 try {
-                    this.minioClient.removeObject(
+                    minioClient.removeObject(
                             RemoveObjectArgs.builder()
-                                    .bucket(this.minioConfig.getMinioBucket())
+                                    .bucket(minioConfig.getMinioBucket())
                                     .object(minioConfig.getPostPicturesFolder() + postPicture.getFileKey())
                                     .build()
                     );
                 } catch (Exception error) {
-                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao deletar o arquivo", error);
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, getMessage("services.post-service.methods.update-post.internal-server-error"), error);
                 }
             });
 
-            this.postPictureRepository.deleteAll(postPictures);
             post.getPostPictures().removeAll(postPictures);
         }
 
         if (!newFiles.isEmpty()) {
-            List<PostPicture> postPictures = this.generatePostPictures(newFiles, post);
-            this.postPictureRepository.saveAll(postPictures);
+            List<PostPicture> postPictures = generatePostPictures(newFiles, post);
             post.getPostPictures().addAll(postPictures);
         }
 
-        this.postMapper.updatePost(dto, post);
-        this.postRepository.save(post);
+        postMapper.updatePost(dto, post);
+        postRepository.save(post);
 
-        PostResponse data = this.postMapper.toDTO(post);
-
-        return new DefaultResponse<PostResponse>(true, "Publicação editada com sucesso", data);
+        return DefaultResponse.success(postMapper.toDTO(post));
     }
 
     @Override
@@ -154,25 +152,25 @@ public class PostServiceImpl implements PostService {
     public DefaultResponse<Void> deletePost(String postId) {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.findPostAndBelongsToTheProfile(postId);
+        Post post = findPostAndBelongsToTheProfile(postId);
         post.setDeleted(true);
 
-        this.postRepository.save(post);
+        postRepository.save(post);
 
         profile.setPostsCount(profile.getPostsCount() - 1);
         profileRepository.save(profile);
 
-        return new DefaultResponse<Void>(true, "Publicação excluida com sucesso", null);
+        return DefaultResponse.success();
     }
 
     private Post findPostAndBelongsToTheProfile(String postId) {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.postRepository.findById(UUIDConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+        Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.not-found")));
 
         if (!profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para manipular essa publicação");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.forbidden"));
         }
 
         return post;
@@ -182,12 +180,12 @@ public class PostServiceImpl implements PostService {
         return files
                 .stream()
                 .map((file) -> {
-                    String fileKey = this.tokenGenerator.generateToken(32);
+                    String fileKey = tokenGenerator.generateToken(32);
                     String mimeType = file.getContentType();
                     String fileName = file.getOriginalFilename();
 
                     try (InputStream inputStream = file.getInputStream()) {
-                        this.minioClient.putObject(
+                        minioClient.putObject(
                                 PutObjectArgs.builder()
                                         .bucket(minioConfig.getMinioBucket())
                                         .object(minioConfig.getPostPicturesFolder() + fileKey)
@@ -196,7 +194,7 @@ public class PostServiceImpl implements PostService {
                                         .build()
                         );
                     } catch (Exception error) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falha ao ler o arquivo enviado, verifique se o arquivo é válido", error);
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.generate-pos-pictures.bad-request"), error);
                     }
 
                     PostPicture picture = new PostPicture();
@@ -209,4 +207,8 @@ public class PostServiceImpl implements PostService {
                 })
                 .toList();
     };
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
 }

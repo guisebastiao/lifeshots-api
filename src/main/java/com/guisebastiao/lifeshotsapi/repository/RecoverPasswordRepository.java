@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @Repository
 public interface RecoverPasswordRepository extends JpaRepository<RecoverPassword, UUID> {
+
     Optional<RecoverPassword> findRecoverPasswordByToken(String token);
 
     @Query("SELECT rp FROM RecoverPassword rp WHERE rp.expiresAt < :expiresAt AND rp.isActive = true")

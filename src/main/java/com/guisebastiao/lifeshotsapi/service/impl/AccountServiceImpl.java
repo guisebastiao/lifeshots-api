@@ -10,8 +10,9 @@ import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,60 +21,67 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AccountServiceImpl implements AccountService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PasswordEncoder passwordEncoder;
+    private final MessageSource messageSource;
 
-    @Autowired
-    private ProfileRepository profileRepository;
-
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AccountServiceImpl(UserRepository userRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, PasswordEncoder passwordEncoder, MessageSource messageSource) {
+        this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.passwordEncoder = passwordEncoder;
+        this.messageSource = messageSource;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<Void> setProfilePrivacy(ProfilePrivacyRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         if (profile.isPrivate() == dto.privacy()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Sua conta já possui está privacidade");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.account-service.methods.set-profile-privacy.conflict"));
         }
 
         profile.setPrivate(dto.privacy());
-        this.profileRepository.save(profile);
+        profileRepository.save(profile);
 
-        return new DefaultResponse<Void>(true, "Sua privacidade foi atualizada com sucesso", null);
+        return DefaultResponse.success();
     }
 
     @Override
+    @Transactional
     public DefaultResponse<Void> updatePassword(UpdatePasswordRequest dto) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        if (!this.passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta");
+        if (!passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.account-service.methods.update-password.bad-request"));
         }
 
-        user.setPassword(this.passwordEncoder.encode(dto.confirmPassword()));
+        user.setPassword(passwordEncoder.encode(dto.confirmPassword()));
 
-        this.userRepository.save(user);
+        userRepository.save(user);
 
-        return new DefaultResponse<Void>(true, "Senha atualizada com sucesso", null);
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> deleteAccount(DeleteAccountRequest dto) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        if (!this.passwordEncoder.matches(dto.password(), user.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Senha incorreta");
+        if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.account-service.methods.delete-account.bad-request"));
         }
 
-        this.userRepository.delete(user);
+        user.setDeleted(true);
+        userRepository.save(user);
 
-        return new DefaultResponse<Void>(true, "Sua conta foi excluida com sucesso", null);
+        return DefaultResponse.success();
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

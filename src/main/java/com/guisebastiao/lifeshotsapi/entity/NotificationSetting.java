@@ -1,22 +1,20 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
+@Entity
+@Table(name = "notification_settings")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "notification_settings")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class NotificationSetting extends Auditable {
 
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @OneToOne
@@ -24,44 +22,49 @@ public class NotificationSetting extends Auditable {
     @JoinColumn(name = "id", nullable = false, unique = true)
     private User user;
 
-    @Column(name = "notify_like_in_post", nullable = false)
+    @Column(name = "notify_all_notifications", nullable = false)
     private boolean notifyAllNotifications = true;
 
-    @Column(name = "notify_all_notifications", nullable = false)
-    private boolean notifyLikeInPost = true;
+    @Column(name = "notify_like_post", nullable = false)
+    private boolean notifyLikePost = true;
 
-    @Column(name = "notify_comment_on_post", nullable = false)
-    private boolean notifyCommentOnPost = true;
+    @Column(name = "notify_like_comment", nullable = false)
+    private boolean notifyLikeComment = true;
 
-    @Column(name = "notify_like_in_comment", nullable = false)
-    private boolean notifyLikeInComment = true;
+    @Column(name = "notify_like_reply_comment", nullable = false)
+    private boolean notifyLikeReplyComment = true;
 
-    @Column(name = "notify_like_in_comment_reply", nullable = false)
-    private boolean notifyLikeInCommentReply = true;
+    @Column(name = "notify_like_story", nullable = false)
+    private boolean notifyLikeStory = true;
 
-    @Column(name = "notify_new_followers", nullable = false)
-    private boolean notifyNewFollowers = true;
+    @Column(name = "notify_new_follower", nullable = false)
+    private boolean notifyNewFollower = true;
 
-    @Column(name = "notify_like_in_story", nullable = false)
-    private boolean notifyLikeInStory = true;
+    @Column(name = "notify_comment_post", nullable = false)
+    private boolean notifyCommentPost = true;
+
+    @Column(name = "notify_reply_comment", nullable = false)
+    private boolean notifyReplyComment = true;
 
     public void disableAllNotifications() {
         this.notifyAllNotifications = false;
-        this.notifyLikeInPost = false;
-        this.notifyCommentOnPost = false;
-        this.notifyLikeInComment = false;
-        this.notifyLikeInCommentReply = false;
-        this.notifyNewFollowers = false;
-        this.notifyLikeInStory = false;
+        this.notifyLikePost = false;
+        this.notifyLikeComment = false;
+        this.notifyLikeReplyComment = false;
+        this.notifyLikeStory = false;
+        this.notifyNewFollower = false;
+        this.notifyCommentPost = false;
+        this.notifyReplyComment = false;
     }
 
     public void enableAllNotifications() {
         this.notifyAllNotifications = true;
-        this.notifyLikeInPost = true;
-        this.notifyCommentOnPost = true;
-        this.notifyLikeInComment = true;
-        this.notifyLikeInCommentReply = true;
-        this.notifyNewFollowers = true;
-        this.notifyLikeInStory = true;
+        this.notifyLikePost = true;
+        this.notifyLikeComment = true;
+        this.notifyLikeReplyComment = true;
+        this.notifyLikeStory = true;
+        this.notifyNewFollower = true;
+        this.notifyCommentPost = true;
+        this.notifyReplyComment = true;
     }
 }

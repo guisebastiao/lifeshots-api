@@ -1,9 +1,7 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
@@ -14,8 +12,9 @@ import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,72 +27,80 @@ import java.util.List;
 @Service
 public class ProfileServiceImpl implements ProfileService {
 
-    @Autowired
-    private ProfileRepository profileRepository;
+    private final ProfileRepository profileRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final ProfileMapper profileMapper;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private ProfileMapper profileMapper;
-
-    @Override
-    public DefaultResponse<ProfileResponse> me() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
-
-        ProfileResponse data = this.profileMapper.toDTO(user.getProfile());
-
-        return new DefaultResponse<ProfileResponse>(true, "Perfil retornado com sucesso", data);
+    public ProfileServiceImpl(ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileMapper profileMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.profileRepository = profileRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.profileMapper = profileMapper;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
     }
 
     @Override
-    public DefaultResponse<PageResponse<ProfileResponse>> searchProfile(SearchProfileRequest dto, PaginationFilter pagination) {
+    @Transactional(readOnly = true)
+    public DefaultResponse<ProfileResponse> me() {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+        return DefaultResponse.success(profileMapper.toDTO(user.getProfile()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<ProfileResponse>> searchProfile(SearchProfileRequest dto, PaginationParam pagination) {
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        Page<Profile> resultPage = this.profileRepository.searchProfiles(dto.search(), pageable);
+        Page<Profile> resultPage = profileRepository.searchProfiles(dto.search(), pageable);
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        List<ProfileResponse> dataResponse = resultPage.getContent().stream()
-                .map(this.profileMapper::toDTO)
+        List<ProfileResponse> data = resultPage.getContent().stream()
+                .map(profileMapper::toDTO)
                 .toList();
 
-        PageResponse<ProfileResponse> data = new PageResponse<ProfileResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<ProfileResponse>>(true, "Perfis encontrados com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<ProfileResponse> findProfileById(String profileId) {
-        Profile profileAuth = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Profile profile = this.profileRepository.findById(UUIDConverter.toUUID(profileId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId)).
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
 
-        boolean mutualFollow = this.profileRepository.profilesFollowEachOther(profile, profileAuth);
+        boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
 
         if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Perfil privado, sem permissão para verificar esse perfil");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
         }
 
-        ProfileResponse data = this.profileMapper.toDTO(profile);
-
-        return new DefaultResponse<ProfileResponse>(true, "Perfil retornado com sucesso", data);
+        return DefaultResponse.success(profileMapper.toDTO(profile));
     }
 
     @Override
     @Transactional
     public DefaultResponse<ProfileResponse> updateProfile(ProfileRequest dto) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = user.getProfile();
 
-        this.profileMapper.updateProfile(dto, profile);
+        profileMapper.updateProfile(dto, profile);
 
-        Profile savedProfile = this.profileRepository.save(profile);
+        profileRepository.save(profile);
 
-        ProfileResponse data = this.profileMapper.toDTO(savedProfile);
+        return DefaultResponse.success(profileMapper.toDTO(profile));
+    }
 
-        return new DefaultResponse<ProfileResponse>(true, "Perfil atualizado com sucesso", data);
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

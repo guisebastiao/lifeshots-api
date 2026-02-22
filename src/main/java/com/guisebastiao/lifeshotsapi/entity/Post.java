@@ -1,24 +1,23 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "posts")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "posts")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Post extends Auditable {
 
     @Id
-    @GeneratedValue
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne
@@ -41,8 +40,8 @@ public class Post extends Auditable {
     private boolean isDeleted = false;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PostPicture> postPictures;
+    private List<PostPicture> postPictures = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikePost> likePosts;
+    private List<LikePost> likePosts = new ArrayList<>();
 }

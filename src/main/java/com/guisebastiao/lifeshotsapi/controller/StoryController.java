@@ -1,23 +1,31 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.StoryControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.StoryRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.StoryUpdateRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.StoryResponse;
 import com.guisebastiao.lifeshotsapi.service.StoryService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/stories")
-public class StoryController {
+public class StoryController implements StoryControllerDocs {
 
-    @Autowired
-    private StoryService storyService;
+    private final StoryService storyService;
 
-    @PostMapping
-    public ResponseEntity<DefaultResponse<StoryResponse>> createStory(@ModelAttribute StoryRequest dto) {
+    public StoryController(StoryService storyService) {
+        this.storyService = storyService;
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DefaultResponse<StoryResponse>> createStory(@ModelAttribute @Valid StoryRequest dto) {
         DefaultResponse<StoryResponse> response = this.storyService.createStory(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -28,8 +36,14 @@ public class StoryController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesByAuthUser() {
+        DefaultResponse<List<StoryResponse>> response = this.storyService.findStoriesByAuthUser();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     @PatchMapping("/{storyId}")
-    public ResponseEntity<DefaultResponse<StoryResponse>> updateStory(@PathVariable String storyId, @ModelAttribute StoryRequest dto) {
+    public ResponseEntity<DefaultResponse<StoryResponse>> updateStory(@PathVariable String storyId, @RequestBody @Valid StoryUpdateRequest dto) {
         DefaultResponse<StoryResponse> response = this.storyService.updateStory(storyId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

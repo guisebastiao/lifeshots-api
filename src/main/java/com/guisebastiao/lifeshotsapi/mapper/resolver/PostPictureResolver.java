@@ -2,7 +2,6 @@ package com.guisebastiao.lifeshotsapi.mapper.resolver;
 
 import com.guisebastiao.lifeshotsapi.config.MinioConfig;
 import com.guisebastiao.lifeshotsapi.entity.PostPicture;
-import com.guisebastiao.lifeshotsapi.entity.ProfilePicture;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.http.Method;
@@ -15,11 +14,13 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class PostPictureResolver {
 
-    @Autowired
-    private MinioClient minioClient;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
 
-    @Autowired
-    private MinioConfig minioConfig;
+    public PostPictureResolver(MinioClient minioClient, MinioConfig minioConfig) {
+        this.minioClient = minioClient;
+        this.minioConfig = minioConfig;
+    }
 
     @Named("getPostPictureUrl")
     public String getPostPictureUrl(PostPicture postPicture) {

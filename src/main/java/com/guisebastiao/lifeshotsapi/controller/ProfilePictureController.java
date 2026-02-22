@@ -1,21 +1,24 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.ProfilePictureControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfilePictureRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfilePictureResponse;
 import com.guisebastiao.lifeshotsapi.service.ProfilePictureService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/profile-picture")
-public class ProfilePictureController {
+public class ProfilePictureController implements ProfilePictureControllerDocs {
 
-    @Autowired
-    private ProfilePictureService profilePictureService;
+    private final ProfilePictureService profilePictureService;
+
+    public ProfilePictureController(ProfilePictureService profilePictureService) {
+        this.profilePictureService = profilePictureService;
+    }
 
     @PostMapping
     public ResponseEntity<DefaultResponse<ProfilePictureResponse>> uploadProfilePicture(@ModelAttribute @Valid ProfilePictureRequest dto) {

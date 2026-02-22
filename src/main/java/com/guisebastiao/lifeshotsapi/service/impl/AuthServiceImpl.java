@@ -1,26 +1,27 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
-import com.guisebastiao.lifeshotsapi.dto.request.RefreshRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.UserResponse;
-import com.guisebastiao.lifeshotsapi.entity.NotificationSetting;
-import com.guisebastiao.lifeshotsapi.entity.Profile;
-import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
+import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
+import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
+import com.guisebastiao.lifeshotsapi.repository.RoleRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
-import com.guisebastiao.lifeshotsapi.security.TokenService;
+import com.guisebastiao.lifeshotsapi.security.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.RefreshTokenService;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
-import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,110 +29,153 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final AccessTokenService accessTokenService;
+    private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
+    private final MessageSource messageSource;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Value("${cookie.access-name}")
+    private String cookieAccessName;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    @Value("${cookie.refresh-name}")
+    private String cookieRefreshName;
 
-    @Autowired
-    private TokenService tokenService;
-
-    @Autowired
-    private UserMapper userMapper;
-
-    @Override
-    @Transactional
-    public DefaultResponse<LoginResponse> login(LoginRequest dto) {
-        UsernamePasswordAuthenticationToken userAndPass = new UsernamePasswordAuthenticationToken(dto.email(), dto.password());
-        Authentication authentication = this.authenticationManager.authenticate(userAndPass);
-
-        User user = (User) authentication.getPrincipal();
-
-        String accessToken = tokenService.generateAccessToken(user);
-        String refreshToken = tokenService.generateRefreshToken(user);
-        UserResponse userResponse = this.userMapper.toDTO(user);
-
-        LoginResponse data = new LoginResponse(accessToken, refreshToken, userResponse);
-
-        return new DefaultResponse<LoginResponse>(true, "Login efetuado com sucesso", data);
+    public AuthServiceImpl(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, MessageSource messageSource) {
+        this.userRepository = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.accessTokenService = accessTokenService;
+        this.refreshTokenService = refreshTokenService;
+        this.userMapper = userMapper;
+        this.messageSource = messageSource;
     }
 
     @Override
     @Transactional
-    public DefaultResponse<RegisterResponse> register(RegisterRequest dto) {
-        Optional<User> existsUser = this.userRepository.findUserByEmail(dto.email());
+    public DefaultResponse<AuthResponse> login(HttpServletResponse response, LoginRequest dto) {
+        UsernamePasswordAuthenticationToken userAndPass = new UsernamePasswordAuthenticationToken(dto.email(), dto.password());
+        Authentication authentication = authenticationManager.authenticate(userAndPass);
+
+        User user = (User) authentication.getPrincipal();
+
+        String accessToken = accessTokenService.createAccessToken(user);
+        String refreshToken = refreshTokenService.createRefreshToken(user);
+
+        generateCookie(response, cookieAccessName, accessToken);
+        generateCookie(response, cookieRefreshName, refreshToken);
+
+        return DefaultResponse.success(userMapper.authDTO(user));
+    }
+
+    @Override
+    @Transactional
+    public DefaultResponse<AuthResponse> register(RegisterRequest dto) {
+        Optional<User> existsUser = userRepository.findByEmail(dto.email());
 
         if (existsUser.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Essa conta já está cadastrada");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.auth-service.methods.register.conflict-email"));
         }
 
-        if (this.userRepository.existsUserByHandleIgnoreCase(dto.handle())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Nome de usuário já está em uso");
+        if (userRepository.existsUserByHandle(dto.handle())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.auth-service.methods.register.conflict-handle"));
         }
+
+        Role userRole = roleRepository.findByRoleName("USER")
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.auth-service.methods.register.role-not-found")));
 
         NotificationSetting notificationSetting = new NotificationSetting();
 
-        User user = this.userMapper.toEntity(dto);
-        user.setPassword(this.passwordEncoder.encode(dto.password()));
+        User user = userMapper.toEntity(dto);
+        user.setPassword(passwordEncoder.encode(dto.password()));
+        user.setRoles(Set.of(userRole));
 
         Profile profile = new Profile();
         profile.setUser(user);
+        profile.setFullName(dto.fullName());
         user.setProfile(profile);
         user.setNotificationSetting(notificationSetting);
         notificationSetting.setUser(user);
 
-        User savedUser = this.userRepository.save(user);
-        UserResponse userResponse = this.userMapper.toDTO(savedUser);
+        User savedUser = userRepository.save(user);
 
-        RegisterResponse data = new RegisterResponse(userResponse);
-
-        return new DefaultResponse<RegisterResponse>(true, "Cadastro concluido com sucesso", data);
+        return DefaultResponse.success(userMapper.authDTO(savedUser));
     }
 
     @Override
     @Transactional
-    public DefaultResponse<RefreshResponse> refresh(RefreshRequest dto) {
-        DecodedJWT decodedRefreshToken = this.tokenService.validateRefreshToken(dto.refreshToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão expirada, faça seu login novamente"));
+    public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
+        String refreshToken = getCookieByRequest(request, cookieRefreshName)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.auth-service.methods.refresh.bad-request")));
 
-        String refreshType = decodedRefreshToken.getClaim("type").asString();
+        RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken);
+        User user = refreshEntity.getUser();
 
-        if (!"refresh".equalsIgnoreCase(refreshType)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token inválido");
-        }
+        refreshTokenRepository.delete(refreshEntity);
 
-        DecodedJWT decodedAccessToken = this.tokenService.decodeWithoutVerification(dto.accessToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token inválido"));
+        String newAccessToken = accessTokenService.createAccessToken(user);
+        String newRefreshToken = refreshTokenService.createRefreshToken(user);
 
-        String accessType = decodedAccessToken.getClaim("type").asString();
+        generateCookie(response, cookieAccessName, newAccessToken);
+        generateCookie(response, cookieRefreshName, newRefreshToken);
 
-        if (!"access".equalsIgnoreCase(accessType)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Access token inválido");
-        }
+        return DefaultResponse.success();
+    }
 
-        String accessUserId = decodedAccessToken.getClaim("userId").asString();
-        String refreshUserId = decodedRefreshToken.getClaim("userId").asString();
+    @Override
+    @Transactional
+    public DefaultResponse<Void> logout(HttpServletResponse response) {
+        removeCookie(response, cookieAccessName);
+        removeCookie(response, cookieRefreshName);
+        return DefaultResponse.success();
+    }
 
-        if (accessUserId == null || refreshUserId == null || !refreshUserId.equals(accessUserId)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Os tokens não pertencem ao mesmo usuário");
-        }
+    private void generateCookie(HttpServletResponse response, String cookieName, String value) {
+        ResponseCookie cookie = ResponseCookie.from(cookieName, value)
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .sameSite("Lax")
+                .build();
 
-        User user = this.userRepository.findById(UUIDConverter.toUUID(accessUserId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
 
-        String newAccessToken = this.tokenService.generateAccessToken(user);
+    private void removeCookie(HttpServletResponse response, String cookieName) {
+        ResponseCookie cookie = ResponseCookie.from(cookieName, "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0)
+                .build();
 
-        RefreshResponse data = new RefreshResponse(newAccessToken);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
 
-        return new DefaultResponse<RefreshResponse>(true, "Sessão renovada com sucesso", data);
+    private Optional<String> getCookieByRequest(HttpServletRequest request, String cookieName) {
+        return Optional.ofNullable(request.getCookies())
+                .stream()
+                .flatMap(Arrays::stream)
+                .filter(cookie -> cookieName.equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst();
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

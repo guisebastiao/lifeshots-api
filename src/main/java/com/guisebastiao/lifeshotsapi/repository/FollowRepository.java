@@ -15,14 +15,14 @@ import java.util.UUID;
 
 @Repository
 public interface FollowRepository extends JpaRepository<Follow, FollowId> {
-    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Follow f WHERE f.following = :following AND f.follower = :follower")
-    boolean alreadyFollowingAccount(@Param("following") Profile following, @Param("follower")Profile follower);
+
+    boolean existsByFollowerAndFollowing(Profile follower, Profile following);
 
     Page<Follow> findByFollower(Profile follower, Pageable pageable);
+
     Page<Follow> findByFollowing(Profile following, Pageable pageable);
+
     Optional<Follow> findByFollowingAndFollower(Profile following, Profile follower);
-    boolean existsByFollowerAndFollowing(Profile follower, Profile following);
-    boolean existsByFollowingAndFollower(Profile following, Profile follower);
 
     @Query("""
         SELECT DISTINCT y2.following
@@ -36,5 +36,5 @@ public interface FollowRepository extends JpaRepository<Follow, FollowId> {
                 WHERE f.follower.id = :profileId
           )
     """)
-    Page<Profile> findFriendRecommendations(UUID profileId, Pageable pageable);
+    Page<Profile> findFriendRecommendations(@Param("profileId") UUID profileId, Pageable pageable);
 }

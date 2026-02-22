@@ -1,19 +1,17 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
 import com.guisebastiao.lifeshotsapi.service.TrendingService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -22,28 +20,34 @@ import java.util.List;
 @Service
 public class TrendingServiceImpl implements TrendingService {
 
-    @Autowired
-    private PostRepository postRepository;
+    private final PostRepository postRepository;
+    private final PostMapper postMapper;
 
-    @Autowired
-    private PostMapper postMapper;
+    public TrendingServiceImpl(PostRepository postRepository, PostMapper postMapper) {
+        this.postRepository = postRepository;
+        this.postMapper = postMapper;
+    }
 
     @Override
-    public DefaultResponse<PageResponse<PostResponse>> trending(PaginationFilter pagination) {
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<PostResponse>> trending(PaginationParam pagination) {
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
         Instant limit = Instant.now().minus(24, ChronoUnit.HOURS);
 
-        Page<Post> resultPage = this.postRepository.findAllTrendingPosts(limit, pageable);
+        Page<Post> resultPage = postRepository.findAllTrendingPosts(limit, pageable);
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        List<PostResponse> dataResponse = resultPage.getContent().stream()
-                .map(this.postMapper::toDTO)
+        List<PostResponse> data = resultPage.getContent().stream()
+                .map(postMapper::toDTO)
                 .toList();
 
-        PageResponse<PostResponse> data = new PageResponse<PostResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<PostResponse>>(true, "Publicações em alta retornadas com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 }

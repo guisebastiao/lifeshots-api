@@ -5,23 +5,24 @@ import com.guisebastiao.lifeshotsapi.entity.Story;
 import com.guisebastiao.lifeshotsapi.repository.LikeStoryRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StoryResolver {
 
-    @Autowired
-    private LikeStoryRepository likeStoryRepository;
+    private final LikeStoryRepository likeStoryRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
+    public StoryResolver(LikeStoryRepository likeStoryRepository, AuthenticatedUserProvider authenticatedUserProvider) {
+        this.likeStoryRepository = likeStoryRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+    }
 
     @Named("resolveIsOwner")
     public boolean resolveIsOwner(Story story) {
         if (story == null || story.getProfile() == null) return false;
 
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return story.getProfile().getId().equals(profile.getId());
     }
 
@@ -29,7 +30,7 @@ public class StoryResolver {
     public boolean resolveIsLiked(Story story) {
         if (story == null) return false;
 
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
-        return this.likeStoryRepository.existsByStoryAndProfile(story, profile);
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        return likeStoryRepository.existsByStoryAndProfile(story, profile);
     }
 }

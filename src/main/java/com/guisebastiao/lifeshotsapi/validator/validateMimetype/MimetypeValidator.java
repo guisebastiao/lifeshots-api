@@ -2,16 +2,13 @@ package com.guisebastiao.lifeshotsapi.validator.validateMimetype;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 public class MimetypeValidator implements ConstraintValidator<ValidateMimetype, Object> {
-
     private List<String> allowedTypes;
 
     @Override
@@ -24,8 +21,7 @@ public class MimetypeValidator implements ConstraintValidator<ValidateMimetype, 
         if (value == null) return true;
 
         if (value instanceof MultipartFile file) {
-            validateType(file);
-            return true;
+            return validateType(file);
         }
 
         if (value instanceof Collection<?> files) {
@@ -38,20 +34,18 @@ public class MimetypeValidator implements ConstraintValidator<ValidateMimetype, 
         return false;
     }
 
-    private void validateType(MultipartFile file) {
-        if (file == null || file.isEmpty()) return;
+    private boolean validateType(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return true;
+        }
 
         String type = file.getContentType();
 
-        if (type == null || !allowedTypes.contains(type)) {
-            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, String.format("Tipo de arquivo '%s' não suportado. Envie uma imagem nos formatos: %s.", type, String.join(", ", allowedTypes)));
-        }
+        return type != null && allowedTypes.contains(type);
     }
 
     private Collection<MultipartFile> extractFiles(Object item) {
-        if (item instanceof MultipartFile file) {
-            return List.of(file);
-        }
+        if (item instanceof MultipartFile file) return List.of(file);
 
         return Arrays.stream(item.getClass().getDeclaredFields())
                 .filter(f -> MultipartFile.class.isAssignableFrom(f.getType()))

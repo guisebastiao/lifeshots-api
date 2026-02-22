@@ -1,19 +1,20 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.MailDTO;
+import com.guisebastiao.lifeshotsapi.dto.params.RecoverPasswordTokenParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ForgotPasswordRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RecoverPasswordRequest;
 import com.guisebastiao.lifeshotsapi.entity.RecoverPassword;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.RecoverPasswordRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
-import com.guisebastiao.lifeshotsapi.service.SendRecoverPasswordService;
+import com.guisebastiao.lifeshotsapi.service.MailSenderService;
 import com.guisebastiao.lifeshotsapi.service.RecoverPasswordService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,37 +28,37 @@ import java.util.Optional;
 @Service
 public class RecoverPasswordServiceImpl implements RecoverPasswordService {
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RecoverPasswordRepository recoverPasswordRepository;
-
-    @Autowired
-    private SendRecoverPasswordService rabbitService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private TokenGenerator tokenGenerator;
-
-    @Autowired
-    private TemplateEngine templateEngine;
+    private final UserRepository userRepository;
+    private final RecoverPasswordRepository recoverPasswordRepository;
+    private final MailSenderService mailSenderService;
+    private final PasswordEncoder passwordEncoder;
+    private final TokenGenerator tokenGenerator;
+    private final TemplateEngine templateEngine;
+    private final MessageSource messageSource;
 
     @Value("${frontend.url}")
     private String frontendUrl;
 
+    public RecoverPasswordServiceImpl(UserRepository userRepository, RecoverPasswordRepository recoverPasswordRepository, MailSenderService mailSenderService, PasswordEncoder passwordEncoder, TokenGenerator tokenGenerator, TemplateEngine templateEngine, MessageSource messageSource) {
+        this.userRepository = userRepository;
+        this.recoverPasswordRepository = recoverPasswordRepository;
+        this.mailSenderService = mailSenderService;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenGenerator = tokenGenerator;
+        this.templateEngine = templateEngine;
+        this.messageSource = messageSource;
+    }
+
     @Override
     @Transactional
     public DefaultResponse<Void> forgotPassword(ForgotPasswordRequest dto) {
-        Optional<User> user = this.userRepository.findUserByEmail(dto.email());
+        Optional<User> user = userRepository.findByEmail(dto.email());
 
         if (user.isEmpty()) {
-            return new DefaultResponse<Void>(true, "Se houver uma conta associada a este e-mail, você receberá uma mensagem com instruções para redefinir sua senha", null);
+            return DefaultResponse.success();
         }
 
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(2); // trocar para 15 minutos
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
         String token = tokenGenerator.generateToken(32);
 
         RecoverPassword recoverPassword = new RecoverPassword();
@@ -66,46 +67,48 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
         recoverPassword.setExpiresAt(expiresAt);
         recoverPassword.setActive(true);
 
-        this.recoverPasswordRepository.save(recoverPassword);
+        recoverPasswordRepository.save(recoverPassword);
 
-        String template = this.templateMail(this.generateLink(token));
-
+        String template = templateMail(generateLink(token));
         String subject = "Recuperar Senha";
-        MailDTO mailDTO = new MailDTO(dto.email(), subject, template);
 
-        this.rabbitService.sendMailRecoverPassword(mailDTO);
+        mailSenderService.sendMail(dto.email(), subject, template);
 
-        return new DefaultResponse<Void>(true, "Se houver uma conta associada a este e-mail, você receberá uma mensagem com instruções para redefinir sua senha", null);
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
-    public DefaultResponse<Void> recoverPassword(String token, RecoverPasswordRequest dto) {
-        RecoverPassword recoverPassword = this.recoverPasswordRepository.findRecoverPasswordByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Link de recuperação inválido ou inexistente"));
+    public DefaultResponse<Void> recoverPassword(RecoverPasswordTokenParam param, RecoverPasswordRequest dto) {
+        RecoverPassword recoverPassword = recoverPasswordRepository.findRecoverPasswordByToken(param.token())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.recover-password-service.methods.recover-password.not-found")));
 
         if (!recoverPassword.isActive() || recoverPassword.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O link de recuperação expirou ou já foi utilizado");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.recover-password-service.methods.recover-password.bad-request"));
         }
 
         User user = recoverPassword.getUser();
-        user.setPassword(this.passwordEncoder.encode(dto.confirmPassword()));
+        user.setPassword(passwordEncoder.encode(dto.confirmPassword()));
 
         recoverPassword.setActive(false);
 
-        this.recoverPasswordRepository.save(recoverPassword);
-        this.userRepository.save(user);
+        recoverPasswordRepository.save(recoverPassword);
+        userRepository.save(user);
 
-        return new DefaultResponse<Void>(true, "Sua senha foi recuperada com sucesso", null);
+        return DefaultResponse.success();
     }
 
     private String templateMail(String link) {
         Context context = new Context();
         context.setVariable("link", link);
-        return this.templateEngine.process("recover-password-template", context);
+        return templateEngine.process("recover-password-template", context);
     }
 
     private String generateLink(String code) {
-        return String.format(this.frontendUrl + "/recover-password/" + code);
+        return String.format(frontendUrl + "/recover-password/" + code);
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

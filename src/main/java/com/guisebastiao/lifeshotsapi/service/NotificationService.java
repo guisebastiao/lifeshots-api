@@ -1,16 +1,20 @@
 package com.guisebastiao.lifeshotsapi.service;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.request.NotificationRequest;
+import com.guisebastiao.lifeshotsapi.dto.params.NotificationParam;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
+import com.guisebastiao.lifeshotsapi.dto.request.DeleteRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.UnreadResponse;
 
 import java.util.List;
 
 public interface NotificationService {
-    DefaultResponse<PageResponse<NotificationResponse>> findAllNotifications(PaginationFilter pagination);
-    DefaultResponse<List<NotificationResponse>> updatedReadNotifications();
-    DefaultResponse<Void> deleteNotification(String notificationId);
-    DefaultResponse<Void> deleteNotifications(NotificationRequest dto);
+    DefaultResponse<List<NotificationResponse>> findAllNotificationsByUser(NotificationParam param, PaginationParam pagination);
+    DefaultResponse<UnreadResponse> findUnreadNotificationsByUser();
+    DefaultResponse<NotificationResponse> findNotificationById(String notificationId);
+    DefaultResponse<Void> readNotificationById(String notificationId);
+    DefaultResponse<Void> readAllUnreadNotifications();
+    DefaultResponse<Void> deleteNotificationById(String notificationId);
+    DefaultResponse<Void> deleteNotifications(DeleteRequest dto);
 }

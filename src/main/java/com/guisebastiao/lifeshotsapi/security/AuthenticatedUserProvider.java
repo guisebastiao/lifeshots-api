@@ -1,9 +1,8 @@
 package com.guisebastiao.lifeshotsapi.security;
 
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.repository.UserRepository;
-import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,14 +12,17 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class AuthenticatedUserProvider {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final MessageSource messageSource;
+
+    public AuthenticatedUserProvider(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
 
     public User getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário autenticado não encontrado");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.authentication-user-provider.authentication-not-found"));
         }
 
         Object principal = authentication.getPrincipal();
@@ -30,6 +32,10 @@ public class AuthenticatedUserProvider {
             return user;
         }
 
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Identificador do usuário inválido");
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.authentication-user-provider.invalid-identifier"));
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

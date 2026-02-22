@@ -2,14 +2,14 @@ package com.guisebastiao.lifeshotsapi.service;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
-import com.guisebastiao.lifeshotsapi.dto.request.RefreshRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LoginResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.RefreshResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.RegisterResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
-    DefaultResponse<LoginResponse> login(LoginRequest dto);
-    DefaultResponse<RegisterResponse> register(RegisterRequest dto);
-    DefaultResponse<RefreshResponse> refresh(RefreshRequest dto);
+    DefaultResponse<AuthResponse> login(HttpServletResponse response, LoginRequest dto);
+    DefaultResponse<AuthResponse> register(RegisterRequest dto);
+    DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response);
+    DefaultResponse<Void> logout(HttpServletResponse response);
 }

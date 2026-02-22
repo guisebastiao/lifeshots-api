@@ -4,7 +4,6 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.service.LikeReplyCommentService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +12,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/like-reply-comments")
 public class LikeReplyCommentController {
 
-    @Autowired
-    private LikeReplyCommentService likeReplyCommentService;
+    private final LikeReplyCommentService likeReplyCommentService;
+
+    public LikeReplyCommentController(LikeReplyCommentService likeReplyCommentService) {
+        this.likeReplyCommentService = likeReplyCommentService;
+    }
 
     @PostMapping("/{replyCommentId}")
     public ResponseEntity<DefaultResponse<Void>> likeReplyComment(@PathVariable String replyCommentId, @RequestBody @Valid LikeReplyCommentRequest dto) {

@@ -1,10 +1,11 @@
 package com.guisebastiao.lifeshotsapi.enums;
 
 public enum NotificationType {
-    LIKE_IN_POST,
-    COMMENT_ON_POST,
-    LIKE_IN_COMMENT,
-    LIKE_IN_COMMENT_REPLY,
-    NEW_FOLLOWERS,
-    LIKE_IN_STORY;
+    LIKE_POST,
+    LIKE_COMMENT,
+    LIKE_REPLY_COMMENT,
+    LIKE_STORY,
+    NEW_FOLLOWER,
+    COMMENT_POST,
+    REPLY_COMMENT;
 }

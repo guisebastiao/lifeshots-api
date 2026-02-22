@@ -1,23 +1,27 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.ReplyCommentControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ReplyCommentResponse;
 import com.guisebastiao.lifeshotsapi.service.ReplyCommentService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/reply-comments")
-public class ReplyCommentController {
+public class ReplyCommentController implements ReplyCommentControllerDocs {
 
-    @Autowired
-    private ReplyCommentService replyCommentService;
+    private final ReplyCommentService replyCommentService;
+
+    public ReplyCommentController(ReplyCommentService replyCommentService) {
+        this.replyCommentService = replyCommentService;
+    }
 
     @PostMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<ReplyCommentResponse>> createReplyComment(@PathVariable String commentId, @RequestBody @Valid ReplyCommentRequest dto) {
@@ -26,8 +30,8 @@ public class ReplyCommentController {
     }
 
     @GetMapping("/{commentId}")
-    public ResponseEntity<DefaultResponse<PageResponse<ReplyCommentResponse>>> findAllReplyComments(@PathVariable String commentId, @Valid PaginationFilter pagination) {
-        DefaultResponse<PageResponse<ReplyCommentResponse>> response = this.replyCommentService.findAllReplyComments(commentId, pagination);
+    public ResponseEntity<DefaultResponse<List<ReplyCommentResponse>>> findAllReplyComments(@PathVariable String commentId, @Valid PaginationParam pagination) {
+        DefaultResponse<List<ReplyCommentResponse>> response = this.replyCommentService.findAllReplyComments(commentId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

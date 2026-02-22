@@ -1,23 +1,23 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
-import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
+import com.guisebastiao.lifeshotsapi.dto.*;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeStoryRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.LikeStoryResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.mapper.LikeStoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.LikeStoryRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.LikeStoryService;
-import com.guisebastiao.lifeshotsapi.service.PushNotificationService;
+import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,39 +31,48 @@ import java.util.List;
 @Service
 public class LikeStoryServiceImpl implements LikeStoryService {
 
-    @Autowired
-    private LikeStoryRepository likeStoryRepository;
+    private final LikeStoryRepository likeStoryRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final StoryRepository storyRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PushSenderService pushSenderService;
+    private final LikeStoryMapper likeStoryMapper;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private StoryRepository storyRepository;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private PushNotificationService pushNotificationService;
-
-    @Autowired
-    private LikeStoryMapper likeStoryMapper;
+    public LikeStoryServiceImpl(LikeStoryRepository likeStoryRepository, NotificationRepository notificationRepository, NotificationSettingRepository notificationSettingRepository, StoryRepository storyRepository, AuthenticatedUserProvider authenticatedUserProvider, PushSenderService pushSenderService, LikeStoryMapper likeStoryMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.likeStoryRepository = likeStoryRepository;
+        this.notificationRepository = notificationRepository;
+        this.notificationSettingRepository = notificationSettingRepository;
+        this.storyRepository = storyRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.pushSenderService = pushSenderService;
+        this.likeStoryMapper = likeStoryMapper;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<Void> likeStory(String storyId, LikeStoryRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Story story = this.storyRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(storyId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
+        Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.like-story.not-found")));
 
-        boolean alreadyLiked = this.likeStoryRepository.alreadyLikedStory(story, profile);
+        boolean alreadyLiked = likeStoryRepository.alreadyLikedStory(story, profile);
 
         if (story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você não pode curtir seu próprio story");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.like-story-service.methods.like-story.bad-request"));
         }
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ? "Você já curtiu este story" : "Você ainda não curtiu este story");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+                    getMessage("services.like-story-service.methods.like-story.conflict-already-liked") :
+                    getMessage("services.like-story-service.methods.like-story.conflict-not-liked")
+            );
         }
-
         if (dto.like()) {
             likeStory(story, profile);
             story.setLikeCount(story.getLikeCount() + 1);
@@ -74,47 +83,86 @@ public class LikeStoryServiceImpl implements LikeStoryService {
 
         storyRepository.save(story);
 
-        String message = dto.like() ? "Story curtido com sucesso" : "Story descurtido com sucesso";
-        return new DefaultResponse<Void>(true, message, null);
+        return DefaultResponse.success();
     }
 
     @Override
-    public DefaultResponse<PageResponse<LikeStoryResponse>> findAllLikeStory(String storyId, PaginationFilter pagination) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<LikeStoryResponse>> findAllLikeStory(String storyId, PaginationParam pagination) {
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Story story = this.storyRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(storyId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story não encontrado"));
+        Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.find-all-like-story.not-found")));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para visualizar quem curtiu esse story");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.like-story-service.methods.find-all-like-story.forbidden"));
         }
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<LikeStory> resultPage = this.likeStoryRepository.findAllByStory(story, pageable);
+        Page<LikeStory> resultPage = likeStoryRepository.findAllByStory(story, pageable);
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        List<LikeStoryResponse> dataResponse = resultPage.getContent().stream()
-                .map(this.likeStoryMapper::toDTO)
+        List<LikeStoryResponse> data = resultPage.getContent().stream()
+                .map(likeStoryMapper::toDTO)
                 .toList();
 
-        PageResponse<LikeStoryResponse> data = new PageResponse<LikeStoryResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<LikeStoryResponse>>(true, "Curtidas retornadas com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 
     private void likeStory(Story story, Profile profile) {
         LikeStoryId id = new LikeStoryId(profile.getId(), story.getId());
-        LikeStory like = new LikeStory(id, profile, story);
+
+        LikeStory like = new LikeStory();
+        like.setId(id);
+        like.setProfile(profile);
+        like.setStory(story);
+
         likeStoryRepository.save(like);
 
-        String body = String.format("Seu story foi curtido por %s", profile.getUser().getHandle());
-        this.pushNotificationService.sendNotification(profile, story.getProfile(), "Story Curtido", body, NotificationType.LIKE_IN_STORY);;
+        String title = getMessage("messages.like-story.title");
+        String message = getMessage("messages.like-story.message", new Object[]{ profile.getUser().getHandle() });
+        User receiver = story.getProfile().getUser();
+
+        if (notifyUser(receiver)) {
+            pushSenderService.sendPush(title, message, receiver.getId());
+        }
+
+        Notification notification = createNotification(title, message, story.getProfile(), profile);
+        notificationRepository.save(notification);
     }
 
     private void unlikeStory(Story story, Profile profile) {
         LikeStoryId id = new LikeStoryId(profile.getId(), story.getId());
         likeStoryRepository.findById(id).ifPresent(likeStoryRepository::delete);
+    }
+
+    private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setReceiver(receiver);
+        notification.setSender(sender);
+        notification.setType(NotificationType.LIKE_STORY);
+        return notification;
+    }
+
+    private boolean notifyUser(User user) {
+        NotificationSetting setting = notificationSettingRepository.findByUser(user);
+        return setting.isNotifyLikeStory() && setting.isNotifyAllNotifications();
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
+
+    private String getMessage(String key, Object[] args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

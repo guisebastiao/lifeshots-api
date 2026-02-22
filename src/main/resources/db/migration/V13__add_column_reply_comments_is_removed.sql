@@ -1,1 +1,0 @@
-ALTER TABLE reply_comments ADD COLUMN is_removed BOOLEAN NOT NULL DEFAULT FALSE;

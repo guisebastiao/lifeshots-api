@@ -1,23 +1,27 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.CommentControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.CommentRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.CommentResponse;
 import com.guisebastiao.lifeshotsapi.service.CommentService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/comments")
-public class CommentController {
+public class CommentController implements CommentControllerDocs {
 
-    @Autowired
-    private CommentService commentService;
+    private final CommentService commentService;
+
+    public CommentController(CommentService commentService) {
+        this.commentService = commentService;
+    }
 
     @PostMapping("/{postId}")
     public ResponseEntity<DefaultResponse<CommentResponse>> createComment(@PathVariable String postId, @RequestBody @Valid CommentRequest dto) {
@@ -26,8 +30,8 @@ public class CommentController {
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<DefaultResponse<PageResponse<CommentResponse>>> findAllComments(@PathVariable String postId, @Valid PaginationFilter pagination) {
-        DefaultResponse<PageResponse<CommentResponse>> response = this.commentService.findAllComments(postId, pagination);
+    public ResponseEntity<DefaultResponse<List<CommentResponse>>> findAllComments(@PathVariable String postId, @Valid PaginationParam pagination) {
+        DefaultResponse<List<CommentResponse>> response = this.commentService.findAllComments(postId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

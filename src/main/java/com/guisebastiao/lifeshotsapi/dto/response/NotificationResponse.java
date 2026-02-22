@@ -8,10 +8,8 @@ import java.util.UUID;
 public record NotificationResponse(
         UUID id,
         String title,
-        String body,
+        String message,
         NotificationType type,
         boolean read,
-        Instant readAt,
-        ProfileResponse sender,
         Instant createdAt
 ) { }

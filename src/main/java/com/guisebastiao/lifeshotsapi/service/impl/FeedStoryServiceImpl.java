@@ -1,27 +1,24 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.StoryFeedResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.StoryItemResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.StoryResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.Story;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
+import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FeedStoryService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,63 +27,55 @@ import java.util.stream.Collectors;
 @Service
 public class FeedStoryServiceImpl implements FeedStoryService {
 
-    @Autowired
-    private StoryRepository storyRepository;
+    private final StoryRepository storyRepository;
+    private final ProfileRepository profileRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final StoryMapper storyMapper;
+    private final ProfileMapper profileMapper;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private StoryMapper storyMapper;
-
-    @Autowired
-    private ProfileMapper profileMapper;
+    public FeedStoryServiceImpl(StoryRepository storyRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, StoryMapper storyMapper, ProfileMapper profileMapper) {
+        this.storyRepository = storyRepository;
+        this.profileRepository = profileRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.storyMapper = storyMapper;
+        this.profileMapper = profileMapper;
+    }
 
     @Override
-    public DefaultResponse<PageResponse<StoryFeedResponse>> feed(PaginationFilter pagination) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<StoryFeedResponse>> feed(PaginationParam pagination) {
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        List<Story> ownerStories = this.storyRepository.findAllStoriesByProfile(profile);
+        Page<UUID> profilePage = profileRepository.findProfileIdsWithStories(profile.getId(), pageable);
 
-        StoryFeedResponse ownerFeed = new StoryFeedResponse(
-                this.profileMapper.toDTO(profile),
-                ownerStories.stream()
-                        .map(storyMapper::toDTO)
-                        .map(storyMapper::toItemDTO)
-                        .toList()
-        );
+        List<Story> stories = storyRepository.findAllByProfileIds(profilePage.getContent());
 
-        Page<Story> resultPage = this.storyRepository.findAllStoriesFromFriends(profile, pageable);
+        Map<UUID, List<Story>> grouped = stories.stream()
+                .collect(Collectors.groupingBy(s -> s.getProfile().getId()));
 
-        long totalGroups = this.storyRepository.countDistinctProfilesFromFriends(profile) + 1;
-        long totalPages = (long) Math.ceil((double) totalGroups / pagination.limit());
+        List<StoryFeedResponse> data = profilePage.getContent().stream()
+                .map(profileId -> {
+                    List<Story> profileStories = grouped.getOrDefault(profileId, List.of());
 
-        Paging paging = new Paging(totalGroups, totalPages, pagination.offset(), pagination.limit());
+                    ProfileResponse profileDTO = profileMapper.toDTO(profileStories.getFirst().getProfile());
 
-        List<StoryResponse> storyResponses = resultPage.getContent().stream()
-                .map(storyMapper::toDTO)
-                .toList();
-
-        Map<UUID, List<StoryResponse>> grouped = storyResponses.stream()
-                .collect(Collectors.groupingBy(s -> s.profile().id()));
-
-        List<StoryFeedResponse> friendsFeed = grouped.values().stream()
-                .map(stories -> {
-                    ProfileResponse profileResponse = stories.getFirst().profile();
-                    List<StoryItemResponse> storyItems = stories.stream()
+                    List<StoryItemResponse> items = profileStories.stream()
+                            .map(storyMapper::toDTO)
                             .map(storyMapper::toItemDTO)
                             .toList();
-                    return new StoryFeedResponse(profileResponse, storyItems);
-                })
-                .toList();
 
-        List<StoryFeedResponse> finalFeed = new ArrayList<>();
-        finalFeed.add(ownerFeed);
-        finalFeed.addAll(friendsFeed);
+                    return new StoryFeedResponse(profileDTO, items);
+                }).toList();
 
-        PageResponse<StoryFeedResponse> data = new PageResponse<>(finalFeed, paging);
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(profilePage.getTotalElements())
+                .totalPages(profilePage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        return new DefaultResponse<>(true, "Feed de stories retornado com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 }

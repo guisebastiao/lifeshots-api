@@ -1,11 +1,11 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
-import com.guisebastiao.lifeshotsapi.dto.request.NotificationRequest;
+import com.guisebastiao.lifeshotsapi.dto.params.NotificationParam;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
+import com.guisebastiao.lifeshotsapi.dto.request.DeleteRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.UnreadResponse;
 import com.guisebastiao.lifeshotsapi.entity.Notification;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
@@ -13,12 +13,12 @@ import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.NotificationService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,68 +28,128 @@ import java.util.List;
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
-    @Autowired
-    private NotificationRepository notificationRepository;
+    private final NotificationRepository notificationRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final NotificationMapper notificationMapper;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private NotificationMapper notificationMapper;
+    public NotificationServiceImpl(NotificationRepository notificationRepository, AuthenticatedUserProvider authenticatedUserProvider, NotificationMapper notificationMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.notificationRepository = notificationRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.notificationMapper = notificationMapper;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
-    public DefaultResponse<PageResponse<NotificationResponse>> findAllNotifications(PaginationFilter pagination) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<NotificationResponse>> findAllNotificationsByUser(NotificationParam param, PaginationParam pagination) {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        Page<Notification> resultPage = this.notificationRepository.findAllByReceiver(user.getProfile(), pageable);
+        Page<Notification> resultPage = notificationRepository.findAllNotificationsByUserId(user.getProfile().getId(), param.read(), pageable);
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        List<NotificationResponse> dataResponse = resultPage.getContent().stream()
-                .map(this.notificationMapper::toDTO)
+        List<NotificationResponse> data = resultPage.getContent().stream()
+                .map(notificationMapper::toDTO)
                 .toList();
 
-        PageResponse<NotificationResponse> data = new PageResponse<>(dataResponse, paging);
+        return DefaultResponse.success(data, meta);
+    }
 
-        return new DefaultResponse<PageResponse<NotificationResponse>>(true, "Notificações retornadas com sucesso", data);
+    @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<UnreadResponse> findUnreadNotificationsByUser() {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+
+        long notificationsUnreadCount = notificationRepository.countAllNotificationsUnreadByUserId(user.getProfile().getId());
+        UnreadResponse data = new UnreadResponse(notificationsUnreadCount);
+
+        return DefaultResponse.success(data);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<NotificationResponse> findNotificationById(String notificationId) {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+
+        Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.find-notification-by-id.not-found")));
+
+        if (!notification.getReceiver().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.find-notification-by-id.forbidden"));
+        }
+
+        return DefaultResponse.success(notificationMapper.toDTO(notification));
     }
 
     @Override
     @Transactional
-    public DefaultResponse<List<NotificationResponse>> updatedReadNotifications() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+    public DefaultResponse<Void> readNotificationById(String notificationId) {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        List<Notification> notifications = this.notificationRepository.findAllByNotificationsAndNotRead(user.getProfile());
+        Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.read-notification-by-id.not-found")));
 
-        notifications.forEach(notification -> notification.setRead(true));
+        if (!notification.getReceiver().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.read-notification-by-id.forbidden"));
+        }
 
-        this.notificationRepository.saveAll(notifications);
+        notification.setRead(true);
+        notificationRepository.save(notification);
 
-        List<NotificationResponse> data = notifications.stream()
-                .map(this.notificationMapper::toDTO)
-                .toList();
-
-        return new DefaultResponse<List<NotificationResponse>>(true, "Notificações atualizadas com sucesso", data);
+        return DefaultResponse.success();
     }
 
     @Override
-    public DefaultResponse<Void> deleteNotification(String notificationId) {
-        Notification notification = this.notificationRepository.findById(UUIDConverter.toUUID(notificationId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notificação não encontrada"));
-
-        this.notificationRepository.delete(notification);
-
-        return new DefaultResponse<Void>(true, "Notificação excluida com sucesso", null);
+    @Transactional
+    public DefaultResponse<Void> readAllUnreadNotifications() {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+        notificationRepository.updateAllToReadByUserId(user.getId());
+        return DefaultResponse.success();
     }
 
     @Override
-    public DefaultResponse<Void> deleteNotifications(NotificationRequest dto) {
-        List<Notification> notifications = this.notificationRepository.findAllNotificationsByIds(dto.ids());
+    @Transactional
+    public DefaultResponse<Void> deleteNotificationById(String notificationId) {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        this.notificationRepository.deleteAll(notifications);
+        Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.delete-notification-by-id.not-found")));
 
-        return new DefaultResponse<Void>(true, "Notificaçães excluidas com sucesso", null);
+        if (!notification.getReceiver().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.delete-notification-by-id.forbidden"));
+        }
+
+        notification.setDeleted(true);
+        notificationRepository.save(notification);
+
+        return DefaultResponse.success();
+    }
+
+    @Override
+    @Transactional
+    public DefaultResponse<Void> deleteNotifications(DeleteRequest dto) {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+
+        List<Notification> notifications = notificationRepository.findAllNotificationsByIdsAndUserId(dto.ids(), user.getId());
+
+        notifications.forEach(notification -> notification.setDeleted(true));
+
+        notificationRepository.saveAll(notifications);
+
+        return DefaultResponse.success();
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

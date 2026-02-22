@@ -1,25 +1,24 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Entity
+@Table(name = "stories")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "stories")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class Story extends Auditable {
 
     @Id
-    @GeneratedValue
+    @EqualsAndHashCode.Include
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(length = 150)
@@ -45,5 +44,5 @@ public class Story extends Auditable {
     private StoryPicture storyPicture;
 
     @OneToMany(mappedBy = "story",cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LikeStory> likeStories;
+    private List<LikeStory> likeStories = new ArrayList<>();
 }

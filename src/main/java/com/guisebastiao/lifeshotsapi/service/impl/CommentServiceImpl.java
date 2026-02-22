@@ -1,25 +1,23 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
-import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.dto.PageResponse;
-import com.guisebastiao.lifeshotsapi.dto.PaginationFilter;
-import com.guisebastiao.lifeshotsapi.dto.Paging;
+import com.guisebastiao.lifeshotsapi.dto.*;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.CommentRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.CommentResponse;
-import com.guisebastiao.lifeshotsapi.entity.Comment;
-import com.guisebastiao.lifeshotsapi.entity.Post;
-import com.guisebastiao.lifeshotsapi.entity.Profile;
+import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.mapper.CommentMapper;
 import com.guisebastiao.lifeshotsapi.repository.CommentRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
-import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.CommentService;
-import com.guisebastiao.lifeshotsapi.service.PushNotificationService;
+import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,137 +27,177 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class CommentServiceImpl implements CommentService {
 
-    @Autowired
-    private CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final PostRepository postRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PushSenderService pushSenderService;
+    private final CommentMapper commentMapper;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private PostRepository postRepository;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private PushNotificationService pushNotificationService;
-
-    @Autowired
-    private CommentMapper commentMapper;
+    public CommentServiceImpl(CommentRepository commentRepository, NotificationRepository notificationRepository, NotificationSettingRepository notificationSettingRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, PushSenderService pushSenderService, CommentMapper commentMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.commentRepository = commentRepository;
+        this.notificationRepository = notificationRepository;
+        this.notificationSettingRepository = notificationSettingRepository;
+        this.postRepository = postRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.pushSenderService = pushSenderService;
+        this.commentMapper = commentMapper;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<CommentResponse> createComment(String postId, CommentRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.postRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+        Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.create-comment.not-found")));
 
-        Comment comment = this.commentMapper.toEntity(dto);
+        Comment comment = commentMapper.toEntity(dto);
         comment.setProfile(profile);
         comment.setPost(post);
 
-        Comment savedComment = this.commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
 
         post.setCommentCount(post.getCommentCount() + 1);
-        this.postRepository.save(post);
+        postRepository.save(post);
 
-        String body = String.format("Você recebeu um novo comentário de %s", profile.getUser().getHandle());
-        this.pushNotificationService.sendNotification(profile, post.getProfile(), "Alguém comentou em sua publicação", body, NotificationType.COMMENT_ON_POST);
+        if (!profile.getId().equals(post.getProfile().getId())) {
+            String title = getMessage("messages.comment-post.title");
+            String message = getMessage("messages.comment-post.message", new Object[]{ profile.getUser().getHandle() });
+            UUID receiverId = post.getProfile().getUser().getId();
 
-        CommentResponse data = this.commentMapper.toDTO(savedComment);
+            if (notifyUser()) {
+                pushSenderService.sendPush(title, message, receiverId);
+            }
 
-        return new DefaultResponse<CommentResponse>(true, "Comentário criado com sucesso", data);
+            Notification notification = createNotification(title, message, post.getProfile(), profile);
+            notificationRepository.save(notification);
+        }
+
+        return DefaultResponse.success(commentMapper.toDTO(savedComment));
     }
 
     @Override
-    public DefaultResponse<PageResponse<CommentResponse>> findAllComments(String postId, PaginationFilter pagination) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
-
-        Post post = this.postRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<CommentResponse>> findAllComments(String postId, PaginationParam pagination) {
+        Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-all-comments.not-found")));
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt")));
 
-        Page<Comment> resultPage = this.commentRepository.findAllByPost(post, pageable);
+        Page<Comment> resultPage = commentRepository.findAllByPost(post, pageable);
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        List<CommentResponse> dataResponse = resultPage.getContent().stream()
-                .map(this.commentMapper::toDTO)
+        List<CommentResponse> data = resultPage.getContent().stream()
+                .map(commentMapper::toDTO)
                 .toList();
 
-        PageResponse<CommentResponse> data = new PageResponse<CommentResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<CommentResponse>>(true, "Comentários retornandos com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 
     @Override
     @Transactional
     public DefaultResponse<CommentResponse> updateComment(String commentId, CommentRequest dto) {
-        Comment comment = this.findCommentAndBelongsToTheProfile(commentId);
+        Comment comment = findCommentAndBelongsToTheProfile(commentId);
 
-        this.commentMapper.updateComment(dto, comment);
+        commentMapper.updateComment(dto, comment);
 
-        Comment savedComment = this.commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
 
-        CommentResponse data = this.commentMapper.toDTO(savedComment);
-
-        return new DefaultResponse<CommentResponse>(true, "Comentário editado com sucesso", data);
+        return DefaultResponse.success(commentMapper.toDTO(savedComment));
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> deleteComment(String commentId) {
-        Comment comment = this.findCommentAndBelongsToTheProfile(commentId);
+        Comment comment = findCommentAndBelongsToTheProfile(commentId);
         comment.setDeleted(true);
 
-        this.commentRepository.save(comment);
+        commentRepository.save(comment);
 
         Post post = comment.getPost();
         post.setCommentCount(post.getCommentCount() - 1);
 
-        this.postRepository.save(post);
+        postRepository.save(post);
 
-        return new DefaultResponse<Void>(true, "Comentário excluido com sucesso", null);
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> removeCommentInPost(String postId, String commentId) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Post post = this.postRepository.findByIdAndNotDeleted(UUIDConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Publicação não encontrada"));
+        Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.post-not-found")));
 
-        Comment comment = this.commentRepository.findByIdAndNotDeletedAndNotRemoved(UUIDConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrado"));
+        Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.comment-not-found")));
 
         if (!post.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não permissão para remover esse comentário");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.comment-service.methods.remove-comment-in-post.forbidden"));
         }
 
         if (comment.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Você pode apenas fazer a exclusão do próprio comentário");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.comment-service.methods.remove-comment-in-post.bad-request"));
         }
 
         comment.setRemoved(true);
-        this.commentRepository.save(comment);
+        commentRepository.save(comment);
 
-        return new DefaultResponse<Void>(true, "Comentário removido com sucesso", null);
+        return DefaultResponse.success();
     }
 
     private Comment findCommentAndBelongsToTheProfile(String commentId) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Comment comment = this.commentRepository.findByIdAndNotDeletedAndNotRemoved(UUIDConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrada"));
+        Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.not-found")));
 
         if (!profile.getId().equals(comment.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não tem permissão para manipular esse comentário");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.forbidden"));
         }
 
         return comment;
+    }
+
+    private boolean notifyUser() {
+        User user = authenticatedUserProvider.getAuthenticatedUser();
+        NotificationSetting setting = notificationSettingRepository.findByUser(user);
+        return setting.isNotifyCommentPost() && setting.isNotifyAllNotifications();
+    }
+
+    private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setReceiver(receiver);
+        notification.setSender(sender);
+        notification.setType(NotificationType.COMMENT_POST);
+        return notification;
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
+
+    private String getMessage(String key, Object[] args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

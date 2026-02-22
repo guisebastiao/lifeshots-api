@@ -1,19 +1,24 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.guisebastiao.lifeshotsapi.dto.*;
+import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
+import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.FollowType;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.mapper.FollowMapper;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
+import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FollowService;
-import com.guisebastiao.lifeshotsapi.service.PushNotificationService;
+import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -26,35 +31,42 @@ import java.util.List;
 @Service
 public class FollowServiceImpl implements FollowService {
 
-    @Autowired
-    private FollowRepository followRepository;
+    private final FollowRepository followRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final ProfileRepository profileRepository;
+    private final FollowMapper followMapper;
+    private final PushSenderService pushSenderService;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private ProfileRepository profileRepository;
-
-    @Autowired
-    private FollowMapper followMapper;
-
-    @Autowired
-    private PushNotificationService pushNotificationService;
+    public FollowServiceImpl(FollowRepository followRepository, NotificationRepository notificationRepository, NotificationSettingRepository notificationSettingRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileRepository profileRepository, FollowMapper followMapper, PushSenderService pushSenderService, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.followRepository = followRepository;
+        this.notificationRepository = notificationRepository;
+        this.notificationSettingRepository = notificationSettingRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.profileRepository = profileRepository;
+        this.followMapper = followMapper;
+        this.pushSenderService = pushSenderService;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<Void> follow(String profileId) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Profile following = this.profileRepository.findById(UUIDConverter.toUUID(profileId))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+        Profile following = profileRepository.findById(uuidConverter.toUUID(profileId))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.follow.not-found)")));
 
         if (user.getProfile().getId().equals(following.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você não pode seguir você mesmo");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.conflict"));
         }
 
-        if (this.followRepository.alreadyFollowingAccount(following, user.getProfile())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você já segue está conta");
+        if (followRepository.existsByFollowerAndFollowing(user.getProfile(), following)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.bad-request"));
         }
 
         FollowId followId = new FollowId();
@@ -66,74 +78,77 @@ public class FollowServiceImpl implements FollowService {
         follow.setFollower(user.getProfile());
         follow.setFollowing(following);
 
-        this.followRepository.save(follow);
+        followRepository.save(follow);
 
         following.setFollowersCount(following.getFollowersCount() + 1);
         user.getProfile().setFollowingCount(user.getProfile().getFollowingCount() + 1);
 
-        this.profileRepository.saveAll(List.of(following, user.getProfile()));
+        profileRepository.saveAll(List.of(following, user.getProfile()));
 
-        String title = "Você tem um novo seguidor";
-        String body = String.format("%s começou a seguir você", user.getHandle());
+        String title = getMessage("messages.follow-account.title");
+        String message = getMessage("messages.follow-account.message", new Object[]{ user.getHandle() });
+        User receiver = following.getUser();
 
-        this.pushNotificationService.sendNotification(user.getProfile(), following, title, body, NotificationType.NEW_FOLLOWERS);
+        if (notifyUser(receiver)) {
+            pushSenderService.sendPush(title, message, receiver.getId());
+        }
 
-        return new DefaultResponse<Void>(true, String.format("Você está seguindo %s", following.getUser().getHandle()), null);
+        Notification notification = createNotification(title, message, following, user.getProfile());
+
+        notificationRepository.save(notification);
+
+        return DefaultResponse.success();
     }
 
     @Override
-    public DefaultResponse<PageResponse<FollowResponse>> findAllMyFollowers(FollowType type, PaginationFilter pagination) {
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<FollowResponse>> findAllMyFollowers(FollowParam param, PaginationParam pagination) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
+        FollowType type = typeEnum(param.type());
+
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        Page<Follow> resultPage;
+        Page<Follow> resultPage = findFollowsByType(type, user.getProfile(), pageable);
 
-        if (type == FollowType.FOLLOWERS) {
-            resultPage = this.followRepository.findByFollowing(user.getProfile(), pageable);
-        } else {
-            resultPage = this.followRepository.findByFollower(user.getProfile(), pageable);
-        }
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
-
-        List<FollowResponse> dataResponse = resultPage.getContent().stream()
-                .map(follow -> (type == FollowType.FOLLOWERS)
-                        ? this.followMapper.toFollowerDTO(follow)
-                        : this.followMapper.toFollowingDTO(follow))
+        List<FollowResponse> data = resultPage.getContent().stream()
+                .map(follow -> followMapper.toDTO(follow, FollowType.valueOf(param.type().toUpperCase())))
                 .toList();
 
-        PageResponse<FollowResponse> data = new PageResponse<FollowResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<FollowResponse>>(true, "Seguidores retornados com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 
     @Override
-    public DefaultResponse<PageResponse<FollowResponse>> findAllFollowers(String profileId, FollowType type, PaginationFilter pagination) {
-        Profile profile = this.profileRepository.findById(UUIDConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<FollowResponse>> findAllFollowers(String profileId, FollowParam param, PaginationParam pagination) {
+        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.find-all-followers.not-found")));
+
+        FollowType type = typeEnum(param.type());
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        Page<Follow> resultPage;
+        Page<Follow> resultPage = findFollowsByType(type, profile, pageable);
 
-        if (type == FollowType.FOLLOWERS) {
-            resultPage = this.followRepository.findByFollowing(profile, pageable);
-        } else {
-            resultPage = this.followRepository.findByFollower(profile, pageable);
-        }
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
 
-        Paging paging = new Paging(resultPage.getTotalElements(), resultPage.getTotalPages(), pagination.offset(), pagination.limit());
-
-        List<FollowResponse> dataResponse = resultPage.getContent().stream()
-                .map(follow -> (type == FollowType.FOLLOWERS)
-                        ? this.followMapper.toFollowerDTO(follow)
-                        : this.followMapper.toFollowingDTO(follow))
+        List<FollowResponse> data = resultPage.getContent().stream()
+                .map(follow -> followMapper.toDTO(follow, FollowType.valueOf(param.type().toUpperCase())))
                 .toList();
 
-        PageResponse<FollowResponse> data = new PageResponse<FollowResponse>(dataResponse, paging);
-
-        return new DefaultResponse<PageResponse<FollowResponse>>(true, "Seguidores retornados com sucesso", data);
+        return DefaultResponse.success(data, meta);
     }
 
     @Override
@@ -141,23 +156,57 @@ public class FollowServiceImpl implements FollowService {
     public DefaultResponse<Void> unfollow(String profileId) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Profile profile = this.profileRepository.findById(UUIDConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.unfollow.not-found")));
 
         if (user.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você não pode seguir você mesmo");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.unfollow.conflict"));
         }
 
-        Follow follow = this.followRepository.findByFollowingAndFollower(profile, user.getProfile())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("Você não segue o usuário %s", profile.getUser().getHandle())));
+        Follow follow = followRepository.findByFollowingAndFollower(profile, user.getProfile())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.follow-service.methods.unfollow.bad-request")));
 
-        this.followRepository.delete(follow);
+        followRepository.delete(follow);
 
         profile.setFollowersCount(profile.getFollowersCount() - 1);
         user.getProfile().setFollowingCount(user.getProfile().getFollowingCount() - 1);
 
-        this.profileRepository.saveAll(List.of(profile, user.getProfile()));
+        profileRepository.saveAll(List.of(profile, user.getProfile()));
 
-        return new DefaultResponse<Void>(true, String.format("Você parou de seguir %s", profile.getUser().getHandle()), null);
+        return DefaultResponse.success();
+    }
+
+    private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setReceiver(receiver);
+        notification.setSender(sender);
+        notification.setType(NotificationType.NEW_FOLLOWER);
+        return notification;
+    }
+
+    private boolean notifyUser(User user) {
+        NotificationSetting setting = notificationSettingRepository.findByUser(user);
+        return setting.isNotifyNewFollower() && setting.isNotifyAllNotifications();
+    }
+
+    private Page<Follow> findFollowsByType(FollowType type, Profile profile, Pageable pageable) {
+        return switch (type) {
+            case FOLLOWERS -> followRepository.findByFollowing(profile, pageable);
+            case FOLLOWING -> followRepository.findByFollower(profile, pageable);
+        };
+    }
+
+    private FollowType typeEnum(String type) {
+        return FollowType.valueOf(type.toUpperCase());
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
+
+    private String getMessage(String key, Object[] args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

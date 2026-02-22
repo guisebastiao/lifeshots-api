@@ -1,0 +1,183 @@
+spring:
+  application:
+    name: lifeshots-api
+
+  profiles:
+    active: dev
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  output:
+    ansi:
+      enabled: always
+
+  web:
+    resources:
+      add-mappings: false
+
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
+
+  rabbitmq:
+    host: ${MQ_HOST}
+    port: ${MQ_PORT}
+    username: ${MQ_USER}
+    password: ${MQ_PASS}
+    virtual-host: /
+
+  mail:
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+    host: sandbox.smtp.mailtrap.io
+    port: 587
+    username: ${MAIL_USER}
+    password: ${MAIL_PASS}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+
+vapid:
+  keys:
+    private: ${VAPID_PRIVATE_KEY}
+    public: ${VAPID_PUBLIC_KEY}
+  contact:
+    email: ${VAPID_CONTACT_MAIL}
+
+server:
+  address: 0.0.0.0
+  port: 8080
+  tomcat:
+    max-part-count: 20
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %cyan(%logger{36}) [%X{traceId:-},%X{spanId:-}] - %msg%n"
+
+frontend:
+  url: ${FRONTEND_URL}
+
+jwt:
+  access-token-secret: ${ACCESS_TOKEN_SECRET}
+  access-token-duration: ${ACCESS_TOKEN_DURATION}
+  refresh-token-duration: ${REFRESH_TOKEN_DURATION}
+
+cookie:
+  access-name: ${COOKIE_NAME_ACCESS_TOKEN}
+  refresh-name: ${COOKIE_NAME_REFRESH_TOKEN}
+
+minio:
+  url: ${MINIO_URL}
+  user: ${MINIO_USER}
+  pass: ${MINIO_PASS}
+  bucket: ${MINIO_BUCKET}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,loggers,threaddump
+    enabled-by-default: false
+
+  endpoint:
+    health:
+      enabled: true
+      show-details: when_authorized
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    loggers:
+      enabled: true
+    threaddump:
+      enabled: true
+
+  health:
+    diskspace:
+      enabled: true
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+
+info:
+  app:
+    name: lifeshots-api
+    description: Lifeshots API
+    version: 1.0.0
+    environment: ${SPRING_PROFILES_ACTIVE:local}
+
+# ============
+# DEVELOPMENT
+# ============
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+
+  flyway:
+    clean-disabled: false
+
+# ============
+# PRODUCTION
+# ============
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    baseline-on-migrate: true
+    clean-disabled: true

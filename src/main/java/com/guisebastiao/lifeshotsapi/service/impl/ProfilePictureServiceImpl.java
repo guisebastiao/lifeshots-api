@@ -17,8 +17,9 @@ import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,42 +30,43 @@ import java.io.InputStream;
 @Service
 public class ProfilePictureServiceImpl implements ProfilePictureService {
 
-    @Autowired
-    private ProfilePictureRepository profilePictureRepository;
+    private final ProfilePictureRepository profilePictureRepository;
+    private final ProfileRepository profileRepository;
+    private final MinioClient minioClient;
+    private final MinioConfig minioConfig;
+    private final TokenGenerator tokenGenerator;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final ProfilePictureMapper profilePictureMapper;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private ProfileRepository profileRepository;
-
-    @Autowired
-    private MinioClient minioClient;
-
-    @Autowired
-    private MinioConfig minioConfig;
-
-    @Autowired
-    private TokenGenerator tokenGenerator;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private ProfilePictureMapper profilePictureMapper;
+    public ProfilePictureServiceImpl(ProfilePictureRepository profilePictureRepository, ProfileRepository profileRepository, MinioClient minioClient, MinioConfig minioConfig, TokenGenerator tokenGenerator, AuthenticatedUserProvider authenticatedUserProvider, ProfilePictureMapper profilePictureMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.profilePictureRepository = profilePictureRepository;
+        this.profileRepository = profileRepository;
+        this.minioClient = minioClient;
+        this.minioConfig = minioConfig;
+        this.tokenGenerator = tokenGenerator;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.profilePictureMapper = profilePictureMapper;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<ProfilePictureResponse> uploadProfilePicture(ProfilePictureRequest dto) {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Profile profile = this.profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+        Profile profile = profileRepository.findById(user.getProfile().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.upload-profile-picture.not-found")));
 
         if (profile.getProfilePicture() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Você já possui uma foto de perfil");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.profile-picture-service.methods.upload-profile-picture.conflict"));
         }
 
         MultipartFile file = dto.file();
 
-        String fileKey = this.tokenGenerator.generateToken(32);
+        String fileKey = tokenGenerator.generateToken(32);
         String fileName = file.getOriginalFilename();
         String mimeType = file.getContentType();
 
@@ -77,10 +79,10 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         profilePicture.setMimeType(mimeType);
         profilePicture.setProfile(profile);
 
-        ProfilePicture profilePictureSaved = this.profilePictureRepository.save(profilePicture);
+        ProfilePicture profilePictureSaved = profilePictureRepository.save(profilePicture);
 
         try (InputStream inputStream = file.getInputStream()) {
-            this.minioClient.putObject(
+            minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getMinioBucket())
                             .object(minioConfig.getProfilePicturesFolder() + fileKey)
@@ -89,51 +91,52 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falha ao ler o arquivo enviado, verifique se o arquivo é válido", error);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.upload-profile-picture.bad-request"), error);
         }
 
-        ProfilePictureResponse data = this.profilePictureMapper.toDTO(profilePictureSaved);
-
-        return new DefaultResponse<ProfilePictureResponse>(true, "Foto de perfil salva com sucesso", data);
+        return DefaultResponse.success(profilePictureMapper.toDTO(profilePictureSaved));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<ProfilePictureResponse> findProfilePictureById(String profileId) {
-        ProfilePicture profilePicture = this.profilePictureRepository.findById(UUIDConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "O usuário não possuí foto de perfil"));
+        ProfilePicture profilePicture = profilePictureRepository.findById(uuidConverter.toUUID(profileId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.find-profile-picture-by-id.not-found")));
 
-        ProfilePictureResponse data = this.profilePictureMapper.toDTO(profilePicture);
-
-        return new DefaultResponse<ProfilePictureResponse>(true, "Foto de perfil retornada com sucesso", data);
+        return DefaultResponse.success(profilePictureMapper.toDTO(profilePicture));
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> deleteProfilePicture() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
+        User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Profile profile = this.profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Perfil não encontrado"));
+        Profile profile = profileRepository.findById(user.getProfile().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.profile-not-found")));
 
         if (profile.getProfilePicture() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "O usuário não possuí foto de perfil");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.picture-not-found"));
         }
 
         try {
-            this.minioClient.removeObject(
+            minioClient.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(minioConfig.getMinioBucket())
                             .object(minioConfig.getProfilePicturesFolder() + profile.getProfilePicture().getFileKey())
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Falha ao ler o arquivo enviado, verifique se o arquivo é válido", error);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.delete-profile-picture.bad-request"), error);
         }
 
         profile.setProfilePicture(null);
 
         profileRepository.save(profile);
 
-        return new DefaultResponse<Void>(true, "Foto de perfil excluida com sucesso", null);
+        return DefaultResponse.success();
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

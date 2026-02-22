@@ -1,8 +1,0 @@
-CREATE TABLE push_subscriptions (
-    id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    endpoint VARCHAR(255) NOT NULL,
-    p256dh VARCHAR(255) NOT NULL,
-    auth VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);

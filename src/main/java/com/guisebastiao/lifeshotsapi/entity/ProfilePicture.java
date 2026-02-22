@@ -1,22 +1,20 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
+@Entity
+@Table(name = "profile_pictures")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "profile_pictures")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProfilePicture extends Auditable {
 
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @OneToOne

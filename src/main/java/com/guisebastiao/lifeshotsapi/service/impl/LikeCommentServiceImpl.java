@@ -4,14 +4,14 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeCommentRequest;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
-import com.guisebastiao.lifeshotsapi.repository.CommentRepository;
-import com.guisebastiao.lifeshotsapi.repository.LikeCommentRepository;
+import com.guisebastiao.lifeshotsapi.repository.*;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.LikeCommentService;
-import com.guisebastiao.lifeshotsapi.service.PushNotificationService;
+import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,30 +19,41 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class LikeCommentServiceImpl implements LikeCommentService {
 
-    @Autowired
-    private LikeCommentRepository likeCommentRepository;
+    private final LikeCommentRepository likeCommentRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationSettingRepository notificationSettingRepository;
+    private final CommentRepository commentRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final PushSenderService pushSenderService;
+    private final MessageSource messageSource;
+    private final UUIDConverter uuidConverter;
 
-    @Autowired
-    private CommentRepository commentRepository;
-
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private PushNotificationService pushNotificationService;
+    public LikeCommentServiceImpl(LikeCommentRepository likeCommentRepository, NotificationSettingRepository notificationSettingRepository, NotificationRepository notificationRepository, CommentRepository commentRepository, AuthenticatedUserProvider authenticatedUserProvider, PushSenderService pushSenderService, MessageSource messageSource, UUIDConverter uuidConverter) {
+        this.likeCommentRepository = likeCommentRepository;
+        this.notificationSettingRepository = notificationSettingRepository;
+        this.notificationRepository = notificationRepository;
+        this.commentRepository = commentRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.pushSenderService = pushSenderService;
+        this.messageSource = messageSource;
+        this.uuidConverter = uuidConverter;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<Void> likeComment(String commentId, LikeCommentRequest dto) {
-        Profile profile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
-        Comment comment = this.commentRepository.findByIdAndNotDeletedAndNotRemoved(UUIDConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comentário não encontrado"));
+        Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-comment-service.methods.like-comment.not-found")));
 
-        boolean alreadyLiked = this.likeCommentRepository.existsByCommentAndProfile(comment, profile);
+        boolean alreadyLiked = likeCommentRepository.existsByCommentAndProfile(comment, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ? "Você já curtiu esse comentário" : "Você ainda não curtiu esse comentário");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+                    getMessage("services.like-comment-service.methods.like-comment.conflict-already-liked") :
+                    getMessage("services.like-comment-service.methods.like-comment.conflict-not-liked")
+            );
         }
 
         if (dto.like()) {
@@ -55,24 +66,60 @@ public class LikeCommentServiceImpl implements LikeCommentService {
 
         commentRepository.save(comment);
 
-        String message = dto.like() ? "Comentário curtido com sucesso" : "Comentário descurtido com sucesso";
-        return new DefaultResponse<Void>(true, message, null);
+        return DefaultResponse.success();
     }
 
     private void likeComment(Comment comment, Profile profile) {
         LikeCommentId id = new LikeCommentId(profile.getId(), comment.getId());
-        LikeComment like = new LikeComment(id, profile, comment);
+
+        LikeComment like = new LikeComment();
+        like.setId(id);
+        like.setComment(comment);
+        like.setProfile(profile);
+
         likeCommentRepository.save(like);
 
-        String body = String.format("Seu comentário foi curtido por %s", profile.getUser().getHandle());
-
-        if (!profile.getId().equals(comment.getProfile().getId())) {
-            this.pushNotificationService.sendNotification(profile, comment.getProfile(), "Seu comentário foi curtido", body, NotificationType.LIKE_IN_POST);;
+        if (profile.getId().equals(comment.getProfile().getId())) {
+            return;
         }
+
+        String title = getMessage("messages.like-comment.title");
+        String message = getMessage("messages.like-comment.message", new Object[]{ profile.getUser().getHandle() });
+        User receiver = comment.getProfile().getUser();
+
+        if (notifyUser(receiver)) {
+            pushSenderService.sendPush(title, message, receiver.getId());
+        }
+
+        Notification notification = createNotification(title, message, comment.getProfile(), profile);
+        notificationRepository.save(notification);
+    }
+
+    private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
+        Notification notification = new Notification();
+        notification.setTitle(title);
+        notification.setMessage(message);
+        notification.setReceiver(receiver);
+        notification.setSender(sender);
+        notification.setType(NotificationType.LIKE_COMMENT);
+        return notification;
+    }
+
+    private boolean notifyUser(User user) {
+        NotificationSetting setting = notificationSettingRepository.findByUser(user);
+        return setting.isNotifyLikeComment() && setting.isNotifyAllNotifications();
     }
 
     private void unlikeComment(Comment comment, Profile profile) {
         LikeCommentId id = new LikeCommentId(profile.getId(), comment.getId());
         likeCommentRepository.findById(id).ifPresent(likeCommentRepository::delete);
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
+
+    private String getMessage(String key, Object[] args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

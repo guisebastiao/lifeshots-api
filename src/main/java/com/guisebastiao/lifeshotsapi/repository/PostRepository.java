@@ -15,6 +15,7 @@ import java.util.UUID;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
+
     @Query("SELECT p FROM Post p WHERE p.id = :id AND p.isDeleted = false")
     Optional<Post> findByIdAndNotDeleted(@Param("id") UUID id);
 
@@ -22,25 +23,24 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     Page<Post> findAllTrendingPosts(@Param("limit") Instant limit, Pageable pageable);
 
     @Query("""
-    SELECT p
-    FROM Post p
-    WHERE p.profile IN (
-        SELECT f.following
-        FROM Follow f
-        WHERE f.follower = :profile
-    )
-    AND (
-        p.profile.isPrivate = false
-        OR EXISTS (
-            SELECT 1
-            FROM Follow f2
-            WHERE f2.follower = p.profile
-              AND f2.following = :profile
+        SELECT p
+        FROM Post p
+        WHERE p.profile IN (
+            SELECT f.following
+            FROM Follow f
+            WHERE f.follower = :profile
         )
-    )
-    AND 
-        p.isDeleted = false
-    ORDER BY p.createdAt DESC
+          AND (
+                p.profile.isPrivate = false
+                OR EXISTS (
+                    SELECT 1
+                    FROM Follow f2
+                    WHERE f2.follower = p.profile
+                      AND f2.following = :profile
+                )
+          )
+          AND p.isDeleted = false
+        ORDER BY p.createdAt DESC
     """)
     Page<Post> findAllPostsFromFriends(@Param("profile") Profile profile, Pageable pageable);
 }

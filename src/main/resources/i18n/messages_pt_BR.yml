@@ -1,0 +1,386 @@
+security:
+  access-token-service:
+    create-access-token: Erro ao criar o token de acesso.
+  authentication-user-provider:
+    authentication-not-found: "Usuário autenticado não encontrado."
+    invalid-identifier: Identificador de usuário inválido.
+  custom-user-details-service:
+    user-not-found: Usuário não encontrado.
+  custom-access-denied-handler:
+    message: Você não tem permissão para acessar este recurso.
+  custom-authentication-entry-point:
+    message: Você precisa estar autenticado para acessar este recurso.
+services:
+  account-service:
+    methods:
+      set-profile-privacy:
+        conflict: Sua conta já possui essa configuração de privacidade.
+      update-password:
+        bad-request: "Senha incorreta."
+      delete-account:
+        bad-request: "Senha incorreta."
+  auth-service:
+    methods:
+      register:
+        conflict-email: Esta conta já está cadastrada.
+        conflict-handle: Nome de usuário já está em uso.
+        role-not-found: Role não encontrada.
+      refresh:
+        bad-request: Cookie não encontrado.
+  comment-service:
+    methods:
+      create-comment:
+        not-found: Publicação não encontrada.
+      find-all-comments:
+        not-found: Publicação não encontrada.
+      find-comment-and-belongs-to-the-profile:
+        not-found: Comentário não encontrado.
+        forbidden: Você não tem permissão para manipular este comentário.
+      remove-comment-in-post:
+        post-not-found: Publicação não encontrada.
+        comment-not-found: Comentário não encontrado.
+        forbidden: Você não tem permissão para remover este comentário.
+        bad-request: Você pode simplesmente excluir o comentário.
+  follow-service:
+    methods:
+      follow:
+        not-found: Perfil não encontrado.
+        conflict: Você não pode seguir a si mesmo.
+        bad-request: Você já está seguindo esta conta.
+      find-all-followers:
+        not-found: Perfil não encontrado.
+      unfollow:
+        not-found: Perfil não encontrado.
+        conflict: Você não pode seguir a si mesmo.
+        bad-request: Você não segue este usuário.
+  like-comment-service:
+    methods:
+      like-comment:
+        not-found: Comentário não encontrado.
+        conflict-already-liked: Você já curtiu este comentário.
+        conflict-not-liked: Você não curtiu este comentário.
+  like-post-service:
+    methods:
+      like-post:
+        not-found: Publicação não encontrada.
+        conflict-already-liked: Você já curtiu esta publicação.
+        conflict-not-liked: Você não curtiu esta publicação.
+      find-all-like-post:
+        not-found: Publicação não encontrada.
+  like-reply-comment-service:
+    methods:
+      like-reply-comment:
+        not-found: Comentário não encontrado.
+        conflict-already-liked: Você já curtiu este comentário.
+        conflict-not-liked: Você não curtiu este comentário.
+  like-story-service:
+    methods:
+      like-story:
+        not-found: Story não encontrado.
+        bad-request: Você não pode curtir seu próprio story.
+        conflict-already-liked: Você já curtiu este story.
+        conflict-not-liked: Você não curtiu este story.
+      find-all-like-story:
+        not-found: Story não encontrado.
+        forbidden: Você não tem permissão para ver quem curtiu este story.
+  notification-service:
+    methods:
+      find-notification-by-id:
+        not-found: Notificação não encontrada.
+        forbidden: Você não tem permissão para visualizar esta notificação.
+      read-notification-by-id:
+        not-found: Notificação não encontrada.
+        forbidden: Você não tem permissão para ler esta notificação.
+      delete-notification-by-id:
+        not-found: Notificação não encontrada.
+        forbidden: Você não tem permissão para excluir esta notificação.
+  post-service:
+    methods:
+      find-post-by-id:
+        not-found: Publicação não encontrada.
+        forbidden: Perfil privado, você não tem permissão para visualizar esta publicação.
+      update-post:
+        bad-request-max-pictures: A publicação não pode ter mais que dez imagens.
+        bad-request-min-pictures: A publicação deve conter pelo menos uma imagem.
+        internal-server-error: Falha ao excluir o arquivo.
+        bad-request-invalid-pictures: Uma ou mais imagens não pertencem a este post.
+      find-post-and-belongs-to-the-profile:
+        not-found: Publicação não encontrada.
+        forbidden: Você não tem permissão para manipular esta publicação.
+      generate-pos-pictures:
+        bad-request: Falha ao ler o arquivo enviado, verifique se o arquivo é válido.
+  profile-picture-service:
+    methods:
+      upload-profile-picture:
+        not-found: Perfil não encontrado.
+        conflict: Você já possui uma foto de perfil.
+        bad-request: Falha ao ler o arquivo enviado, verifique se o arquivo é válido.
+      find-profile-picture-by-id:
+        not-found: O usuário não possui foto de perfil.
+      delete-profile-picture:
+        profile-not-found: Perfil não encontrado.
+        picture-not-found: O usuário não possui foto de perfil.
+        bad-request: Falha ao ler o arquivo enviado, verifique se o arquivo é válido.
+  profile-service:
+    methods:
+      find-profile-by-id:
+        not-found: Perfil não encontrado.
+        forbidden: Perfil privado, você não tem permissão para visualizar este perfil.
+  recover-password-service:
+    methods:
+      recover-password:
+        not-found: Link de recuperação inválido ou inexistente.
+        bad-request: O link de recuperação expirou ou já foi utilizado.
+  reply-comment-service:
+    methods:
+      create-reply-comment:
+        not-found: Comentário não encontrado.
+      find-all-reply-comments:
+        not-found: Comentário não encontrado.
+      remove-reply-comment-in-comment:
+        post-not-found: Publicação não encontrada.
+        comment-not-found: Comentário não encontrado.
+        forbidden: Você não tem permissão para remover este comentário.
+        bad-request: Você pode simplesmente excluir o comentário.
+      find-reply-comment-and-belongs-to-the-profile:
+        not-found: Resposta ao comentário não encontrada.
+        forbidden: Você não tem permissão para manipular este comentário.
+  story-service:
+    methods:
+      create-story:
+        limit-bad-request: Limite de stories atingido.
+        file-bad-request: Falha ao ler o arquivo enviado, verifique se o arquivo é válido.
+      find-story-by-id:
+        not-found: Story não encontrado.
+        forbidden: Este perfil é privado; você não tem permissão para visualizar este story.
+      find-story-and-belongs-to-the-profile:
+        not-found: Story não encontrado.
+        forbidden: Você não tem permissão para manipular este story.
+messages:
+  comment-post:
+    title: Novo comentário
+    message: "{0} comentou na sua publicação."
+  follow-account:
+    title: Novo seguidor
+    message: "{0} começou a seguir você."
+  like-post:
+    title: Nova curtida
+    message: "{0} curtiu sua publicação."
+  like-comment:
+    title: Comentário curtido
+    message: "{0} curtiu seu comentário."
+  like-reply-comment:
+    title: Resposta curtida
+    message: "{0} curtiu sua resposta."
+  reply-comment:
+    title: Nova resposta
+    message: "{0} respondeu ao seu comentário."
+  like-story:
+    title: Story curtido
+    message: "{0} curtiu seu story."
+validation:
+  notification-param:
+    offset:
+      not-null: O número da página é obrigatório.
+      min: O número da página deve ser maior que zero.
+    limit:
+      not-null: A quantidade de itens é obrigatória.
+      min: A quantidade mínima de itens é 1.
+      max: A quantidade máxima de itens é 50.
+  pagination-param:
+    offset:
+      not-null: O número da página é obrigatório.
+      min: O número da página deve ser maior que zero.
+    limit:
+      not-null: A quantidade de itens é obrigatória.
+      min: A quantidade mínima de itens é 1.
+      max: A quantidade máxima de itens é 50.
+  recover-password-token-param:
+    token:
+      not-blank: O token é obrigatório.
+  follow-param:
+    type:
+      not-null: O tipo é obrigatório.
+      invalid-enum: Tipo inválido.
+  comment-request:
+    content:
+      not-blank: Informe seu comentário.
+      length: O comentário deve ter menos de 300 caracteres.
+  delete-account-request:
+    password:
+      not-blank: Informe sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+  delete-request:
+    ids:
+      not-null: A lista de IDs não pode ser nula.
+      not-empty: A lista de IDs não pode estar vazia.
+  forgot-password-request:
+    email:
+      not-blank: Informe seu e-mail.
+      is-valid: Informe um e-mail válido.
+      length: O e-mail deve ter no máximo 250 caracteres.
+  like-comment-request:
+    like:
+      not-null: Informe o valor da curtida.
+  like-post-request:
+    like:
+      not-null: Informe o valor da curtida.
+  like-reply-comment-request:
+    like:
+      not-null: Informe o valor da curtida.
+  like-story-request:
+    like:
+      not-null: Informe o valor da curtida.
+  login-request:
+    email:
+      not-blank: Informe seu e-mail.
+      is-valid: Informe um e-mail válido.
+      length: O e-mail deve ter no máximo 250 caracteres.
+    password:
+      not-blank: Informe sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+  post-request:
+    content:
+      length: A descrição da publicação deve ter menos de 300 caracteres.
+    files:
+      not-null: Pelo menos uma imagem é obrigatória para a publicação.
+      validate-max-files: Apenas dez imagens são permitidas por publicação.
+      validate-filesize: A imagem do story deve ter no máximo 5MB.
+      validate-mimetype: Formato de imagem não suportado.
+  post-update-request:
+    content:
+      length: A descrição da publicação deve ter menos de 300 caracteres.
+    files:
+      not-null: Pelo menos uma imagem é obrigatória para a publicação.
+      validate-max-files: Apenas dez imagens são permitidas por publicação.
+      validate-filesize: A imagem do story deve ter no máximo 5MB.
+      validate-mimetype: Formato de imagem não suportado.
+  profile-picture-request:
+    file:
+      validate-filesize: A imagem deve ter no máximo 5MB.
+      validate-mimetype: Formato de imagem não suportado.
+  profile-privacy-request:
+    privacy:
+      not-null: Informe a configuração de privacidade da sua conta.
+  profile-request:
+    full-name:
+      length: Seu nome completo deve ter menos de 250 caracteres.
+    bio:
+      length: Sua biografia deve ter menos de 300 caracteres.
+  push-subscription-request:
+    endpoint:
+      not-blank: Informe o endpoint.
+    device-id:
+      not-blank: Informe o deviceId.
+    user-agent:
+      not-blank: Informe o userAgent.
+    keys:
+      p256dh:
+        not-blank: Informe o p256dh.
+      auth:
+        not-blank: Informe o auth.
+  recover-password-request:
+    password-matcher:
+      message: As senhas não coincidem.
+    new-password:
+      not-blank: Informe sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+    confirm-password:
+      not-blank: Confirme sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+  register-request:
+    password-matcher:
+      message: As senhas não coincidem.
+    handle:
+      not-blank: Seu nome de usuário deve ter entre 3 e 20 caracteres.
+      pattern:
+        handle-validation: Seu nome de usuário deve começar com uma letra e conter apenas letras, números, pontos ou underscores, sem espaços.
+    fullname:
+      not-blank: O nome completo é obrigatório.
+      length: O nome completo deve ter entre 3 e 250 caracteres.
+    email:
+      not-blank: Informe seu e-mail.
+      is-valid: Informe um e-mail válido.
+      length: O e-mail deve ter no máximo 250 caracteres.
+    password:
+      not-blank: Informe sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+    confirm-password:
+      not-blank: Confirme sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+  reply-comment-request:
+    content:
+      not-blank: Informe seu comentário.
+      length: O comentário deve ter menos de 300 caracteres.
+  search-profile-request:
+    search:
+      not-blank: Informe o nome do perfil que deseja buscar.
+      length: São necessários pelo menos 3 caracteres para buscar um perfil.
+  story-request:
+    caption:
+      length: A descrição do story deve ter no máximo 150 caracteres.
+    file:
+      not-null: A imagem do story é obrigatória.
+      validate-filesize: A imagem do story deve ter no máximo 5MB.
+      validate-mimetype: Formato de imagem não suportado.
+  update-password-request:
+    password-matcher:
+      message: As senhas não coincidem.
+    current-password:
+      not-blank: Informe sua senha atual.
+      length: Sua senha atual deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha atual deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha atual deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha atual deve conter pelo menos dois números.
+    new-password:
+      not-blank: Informe sua nova senha.
+      length: Sua nova senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua nova senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua nova senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua nova senha deve conter pelo menos dois números.
+    confirm-password:
+      not-blank: Confirme sua senha.
+      length: Sua senha deve ter entre 6 e 20 caracteres.
+      pattern:
+        capital-letter: Sua senha deve conter pelo menos uma letra maiúscula.
+        special-character: Sua senha deve conter pelo menos um caractere especial.
+        two-numbers: Sua senha deve conter pelo menos dois números.
+  update-story-request:
+    caption:
+      length: A descrição do story deve ter no máximo 150 caracteres.
+global-exception-handler:
+  method-not-allowed: Este método não é suportado para este endpoint.
+  route-not-found: Esta rota não existe.
+  internal-server-error: Ocorreu um erro inesperado, tente novamente mais tarde.
+  unprocessable-entity: Erro de validação.
+  bad-credentials: E-mail ou senha incorretos.
+  authorization-denied-exception: Você não tem permissão para realizar esta ação.
+util:
+  uuid-converter:
+    invalid-id: ID inválido.

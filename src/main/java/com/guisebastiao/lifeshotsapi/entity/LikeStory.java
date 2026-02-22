@@ -1,17 +1,14 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
+@Entity
+@Table(name = "like_stories")
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Entity
-@Table(name = "like_stories")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class LikeStory extends Auditable{
 
     @EmbeddedId

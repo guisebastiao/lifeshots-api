@@ -5,63 +5,62 @@ import com.guisebastiao.lifeshotsapi.dto.request.PushSubscriptionRequest;
 import com.guisebastiao.lifeshotsapi.entity.PushSubscription;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.PushSubscriptionRepository;
-import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.PushSubscriptionService;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class PushSubscriptionServiceImpl implements PushSubscriptionService {
 
-    @Autowired
-    private PushSubscriptionRepository pushSubscriptionRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
-
-    @Autowired
-    private UserRepository userRepository;
+    public PushSubscriptionServiceImpl(PushSubscriptionRepository pushSubscriptionRepository, AuthenticatedUserProvider authenticatedUserProvider) {
+        this.pushSubscriptionRepository = pushSubscriptionRepository;
+        this.authenticatedUserProvider = authenticatedUserProvider;
+    }
 
     @Override
     @Transactional
     public DefaultResponse<Void> saveSubscription(PushSubscriptionRequest dto) {
         User user = this.authenticatedUserProvider.getAuthenticatedUser();
 
-        User managedUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+        pushSubscriptionRepository.findByEndpointAndUser(dto.endpoint(), user)
+                .map(existing -> {
+                    existing.setP256dh(dto.keys().p256dh());
+                    existing.setAuth(dto.keys().auth());
+                    existing.setUserAgent(dto.userAgent());
+                    existing.setDeviceId(dto.deviceId());
+                    existing.setActive(true);
+                    existing.setLastUsedAt(Instant.now());
+                    return pushSubscriptionRepository.save(existing);
+                })
+                .orElseGet(() -> {
+                    PushSubscription sub = new PushSubscription();
+                    sub.setUser(user);
+                    sub.setEndpoint(dto.endpoint());
+                    sub.setP256dh(dto.keys().p256dh());
+                    sub.setAuth(dto.keys().auth());
+                    sub.setUserAgent(dto.userAgent());
+                    sub.setDeviceId(dto.deviceId());
+                    sub.setLastUsedAt(Instant.now());
+                    return pushSubscriptionRepository.save(sub);
+                });
 
-        if (managedUser.getPushSubscription() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Usuário já inscrito nas notificações push");
-        }
-
-        PushSubscription sub = new PushSubscription();
-        sub.setUser(managedUser);
-        sub.setToken(dto.token());
-
-        this.pushSubscriptionRepository.save(sub);
-
-        return new DefaultResponse<Void>(true, "Assinatura de notificações push registrada com sucesso", null);
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
-    public DefaultResponse<Void> removeSubscription() {
-        User user = this.authenticatedUserProvider.getAuthenticatedUser();
-
-        PushSubscription pushSubscription = user.getPushSubscription();
-
-        if (pushSubscription.getId() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Assinatura não encontrada");
-        }
-
-        this.pushSubscriptionRepository.delete(pushSubscription);
-        user.setPushSubscription(null);
-        this.userRepository.save(user);
-
-        return new DefaultResponse<Void>(true, "Assinatura de notificações push removida com sucesso", null);
+    public void deactivate(UUID subId) {
+        pushSubscriptionRepository.findById(subId)
+                .ifPresent(sub -> {
+                    sub.setActive(false);
+                    pushSubscriptionRepository.save(sub);
+                });
     }
 }

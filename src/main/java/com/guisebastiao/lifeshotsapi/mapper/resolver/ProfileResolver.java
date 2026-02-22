@@ -5,17 +5,18 @@ import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProfileResolver {
 
-    @Autowired
-    private AuthenticatedUserProvider authenticatedUserProvider;
+    private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final FollowRepository followRepository;
 
-    @Autowired
-    private FollowRepository followRepository;
+    public ProfileResolver(AuthenticatedUserProvider authenticatedUserProvider, FollowRepository followRepository) {
+        this.authenticatedUserProvider = authenticatedUserProvider;
+        this.followRepository = followRepository;
+    }
 
     @Named("resolveGetHandle")
     public String resolveGetHandle(Profile profile) {
@@ -30,7 +31,7 @@ public class ProfileResolver {
     public boolean resolveIsOwnProfile(Profile profile) {
         if (profile == null) return false;
 
-        User authUser = this.authenticatedUserProvider.getAuthenticatedUser();
+        User authUser = authenticatedUserProvider.getAuthenticatedUser();
 
         return profile.getUser().getId().equals(authUser.getProfile().getId());
     }
@@ -38,14 +39,14 @@ public class ProfileResolver {
     @Named("resolveIsFollowing")
     public boolean resolveIsFollowing(Profile profile) {
         if (profile == null) return false;
-        Profile authProfile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
-        return this.followRepository.existsByFollowerAndFollowing(authProfile, profile);
+        Profile authProfile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        return followRepository.existsByFollowerAndFollowing(authProfile, profile);
     }
 
     @Named("resolveIsFollower")
     public boolean resolveIsFollower(Profile profile) {
         if (profile == null) return false;
-        Profile authProfile = this.authenticatedUserProvider.getAuthenticatedUser().getProfile();
-        return this.followRepository.existsByFollowingAndFollower(authProfile, profile);
+        Profile authProfile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+        return followRepository.existsByFollowerAndFollowing(profile, authProfile);
     }
 }

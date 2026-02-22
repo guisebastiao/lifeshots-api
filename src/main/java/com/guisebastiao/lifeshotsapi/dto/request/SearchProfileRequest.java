@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.Length;
 
 public record SearchProfileRequest(
-        @NotBlank(message = "Informe o nome do perfil que quer pesquisar")
-        @Length(min = 3, message = "É necessario ao menos 3 caracteres para buscar um perfil")
+        @NotBlank(message = "{validation.search-profile-request.search.not-blank}")
+        @Length(min = 3, message = "{validation.search-profile-request.search.length}")
         String search
 ) { }

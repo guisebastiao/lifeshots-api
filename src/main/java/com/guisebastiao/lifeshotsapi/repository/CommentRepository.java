@@ -14,7 +14,8 @@ import java.util.UUID;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, UUID> {
-    @Query("SELECT c FROM Comment c WHERE c.post = :post AND c.isDeleted = false AND c.isRemoved = false")
+
+    @Query("SELECT c FROM Comment c WHERE c.post = :post AND c.isDeleted = false")
     Page<Comment> findAllByPost(@Param("post") Post post, Pageable pageable);
 
     @Query("SELECT c FROM Comment c WHERE c.id = :id AND c.isDeleted = false AND c.isRemoved = false")

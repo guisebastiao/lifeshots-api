@@ -12,8 +12,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = MaxFilesValidator.class)
 public @interface ValidateMaxFiles {
-    String message() default "Quantidade máxima de arquivos excedida";
-    int max() default 5;
+    String message() default "Maximum number of files exceeded.";
+    int max();
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

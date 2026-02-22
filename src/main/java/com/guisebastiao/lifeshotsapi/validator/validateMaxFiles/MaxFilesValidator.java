@@ -8,7 +8,6 @@ import java.lang.reflect.Field;
 import java.util.Collection;
 
 public class MaxFilesValidator implements ConstraintValidator<ValidateMaxFiles, Object> {
-
     private int max;
 
     @Override
@@ -37,20 +36,20 @@ public class MaxFilesValidator implements ConstraintValidator<ValidateMaxFiles, 
     private boolean isValidFile(Object item) {
         if (item == null) return false;
 
-        if (item instanceof MultipartFile file) {
-            return !file.isEmpty();
-        }
+        if (item instanceof MultipartFile file) return !file.isEmpty();
 
         for (Field field : item.getClass().getDeclaredFields()) {
             if (MultipartFile.class.isAssignableFrom(field.getType())) {
-                field.setAccessible(true);
-
                 try {
+                    field.setAccessible(true);
                     MultipartFile file = (MultipartFile) field.get(item);
+
                     if (file != null && !file.isEmpty()) {
                         return true;
                     }
-                } catch (IllegalAccessException ignored) {}
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
