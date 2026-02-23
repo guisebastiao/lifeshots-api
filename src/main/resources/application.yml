@@ -105,48 +105,6 @@ minio:
   pass: ${MINIO_PASS}
   bucket: ${MINIO_BUCKET}
 
-management:
-  endpoints:
-    web:
-      base-path: /actuator
-      exposure:
-        include: health,info,metrics,prometheus,loggers,threaddump
-    enabled-by-default: false
-
-  endpoint:
-    health:
-      enabled: true
-      show-details: when_authorized
-      probes:
-        enabled: true
-    info:
-      enabled: true
-    metrics:
-      enabled: true
-    prometheus:
-      enabled: true
-    loggers:
-      enabled: true
-    threaddump:
-      enabled: true
-
-  health:
-    diskspace:
-      enabled: true
-    db:
-      enabled: true
-    redis:
-      enabled: true
-    rabbit:
-      enabled: true
-
-info:
-  app:
-    name: lifeshots-api
-    description: Lifeshots API
-    version: 1.0.0
-    environment: ${SPRING_PROFILES_ACTIVE:local}
-
 # ============
 # DEVELOPMENT
 # ============
