@@ -21,18 +21,21 @@ public class AccountController implements AccountControllerDocs {
         this.accountService = accountService;
     }
 
+    @Override
     @PatchMapping("/privacy")
     public ResponseEntity<DefaultResponse<Void>> setProfilePrivacy(@Valid @RequestBody ProfilePrivacyRequest dto) {
         DefaultResponse<Void> response = accountService.setProfilePrivacy(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping("/password")
     public ResponseEntity<DefaultResponse<Void>> updatePassword(@Valid @RequestBody UpdatePasswordRequest dto) {
         DefaultResponse<Void> response = accountService.updatePassword(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping
     public ResponseEntity<DefaultResponse<Void>> deleteAccount(@RequestBody @Valid DeleteAccountRequest dto) {
         DefaultResponse<Void> response = accountService.deleteAccount(dto);

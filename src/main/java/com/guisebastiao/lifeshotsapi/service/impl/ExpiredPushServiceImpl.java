@@ -1,5 +1,6 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
+import com.guisebastiao.lifeshotsapi.entity.PushSubscription;
 import com.guisebastiao.lifeshotsapi.repository.PushSubscriptionRepository;
 import com.guisebastiao.lifeshotsapi.service.ExpiredPushService;
 import org.springframework.stereotype.Service;
@@ -7,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class ExpiredPushServiceImpl implements ExpiredPushService {
@@ -23,5 +25,12 @@ public class ExpiredPushServiceImpl implements ExpiredPushService {
         int daysInactive = 30;
         Instant cutoff = Instant.now().minus(daysInactive, ChronoUnit.DAYS);
         pushSubscriptionRepository.deactivateStaleSubscriptions(cutoff);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSubscriptionsInactive() {
+        List<PushSubscription> subscriptions = pushSubscriptionRepository.findAllPushSubscriptionByInactive();
+        pushSubscriptionRepository.deleteAll(subscriptions);
     }
 }

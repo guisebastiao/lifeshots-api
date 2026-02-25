@@ -7,6 +7,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -19,7 +20,16 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
         String errorCode = resolveErrorCode(exception);
-        response.sendRedirect(frontendUrl + "/oauth/error?reason=" + errorCode);
+
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString(frontendUrl)
+                .path("/oauth/error")
+                .queryParam("reason", errorCode)
+                .build()
+                .encode()
+                .toUriString();
+
+        response.sendRedirect(redirectUrl);
     }
 
     private String resolveErrorCode(AuthenticationException exception) {

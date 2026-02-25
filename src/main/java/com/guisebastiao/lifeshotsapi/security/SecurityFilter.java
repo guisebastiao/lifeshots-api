@@ -42,7 +42,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             return;
         }
 
-        String userId = accessTokenService.validateAccessToken(accessToken.get(), response);
+        String userId = accessTokenService.validateAccessToken(accessToken.get(), request);
 
         if (userId == null) {
             filterChain.doFilter(request, response);

@@ -24,6 +24,7 @@ public class RecommendationController implements RecommendationControllerDocs {
         this.recommendationService = recommendationService;
     }
 
+    @Override
     @GetMapping("/friends")
     public ResponseEntity<DefaultResponse<List<ProfileResponse>>> getFriendRecommendations(@Valid PaginationParam pagination) {
         DefaultResponse<List<ProfileResponse>> response = this.recommendationService.findFriendRecommendations(pagination);

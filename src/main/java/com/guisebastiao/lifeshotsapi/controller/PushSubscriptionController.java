@@ -18,6 +18,7 @@ public class PushSubscriptionController implements PushSubscriptionControllerDoc
         this.pushSubscriptionService = pushSubscriptionService;
     }
 
+    @Override
     @PostMapping("/subscribe")
     public ResponseEntity<DefaultResponse<Void>> subscribe(@RequestBody PushSubscriptionRequest dto) {
         DefaultResponse<Void> response = pushSubscriptionService.saveSubscription(dto);

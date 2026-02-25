@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -51,21 +52,19 @@ public class AccessTokenService {
         }
     }
 
-    public String validateAccessToken(String accessToken, HttpServletResponse response) {
+    public String validateAccessToken(String accessToken, HttpServletRequest request) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(accessTokenSecret);
-
-            response.setHeader("X-Auth-Status", "TOKEN_VALID");
 
             return JWT.require(algorithm)
                     .build()
                     .verify(accessToken)
                     .getClaim("userId").asString();
         } catch (TokenExpiredException e) {
-            response.setHeader("X-Auth-Status", "TOKEN_EXPIRED");
+            request.setAttribute("auth_error", "token_expired");
             return null;
         } catch (JWTVerificationException e) {
-            response.setHeader("X-Auth-Status", "TOKEN_INVALID");
+            request.setAttribute("auth_error", "invalid_token");
             return null;
         }
     }

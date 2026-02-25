@@ -104,11 +104,11 @@ public class PostServiceImpl implements PostService {
         int totalPictures = post.getPostPictures().size() - removeFiles.size() + newFiles.size();
 
         if (totalPictures > 10) {
-            throw new BusinessValidationException("newFiles", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
+            throw new BusinessValidationException("newFiles", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
         }
 
         if (totalPictures <= 0) {
-            throw new BusinessValidationException("removeFiles", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
+            throw new BusinessValidationException("removeFiles", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
         }
 
         if (!removeFiles.isEmpty()) {

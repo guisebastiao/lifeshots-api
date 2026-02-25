@@ -23,30 +23,35 @@ public class ReplyCommentController implements ReplyCommentControllerDocs {
         this.replyCommentService = replyCommentService;
     }
 
+    @Override
     @PostMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<ReplyCommentResponse>> createReplyComment(@PathVariable String commentId, @RequestBody @Valid ReplyCommentRequest dto) {
         DefaultResponse<ReplyCommentResponse> response = this.replyCommentService.createReplyComment(commentId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<List<ReplyCommentResponse>>> findAllReplyComments(@PathVariable String commentId, @Valid PaginationParam pagination) {
         DefaultResponse<List<ReplyCommentResponse>> response = this.replyCommentService.findAllReplyComments(commentId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping("/{replyCommentId}")
     public ResponseEntity<DefaultResponse<ReplyCommentResponse>> updateReplyComment(@PathVariable String replyCommentId, @RequestBody @Valid ReplyCommentRequest dto) {
         DefaultResponse<ReplyCommentResponse> response = this.replyCommentService.updateReplyComment(replyCommentId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/{replyCommentId}")
     public ResponseEntity<DefaultResponse<Void>> deleteReplyComment(@PathVariable String replyCommentId) {
         DefaultResponse<Void> response = this.replyCommentService.deleteReplyComment(replyCommentId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/remove/{postId}/{replyCommentId}")
     public ResponseEntity<DefaultResponse<Void>> removeReplyCommentInComment(@PathVariable String postId, @PathVariable String replyCommentId) {
         DefaultResponse<Void> response = this.replyCommentService.removeReplyCommentInComment(postId, replyCommentId);

@@ -1,6 +1,10 @@
 security:
   access-token-service:
     create-access-token: Error while creating access token.
+  refresh-token-service:
+    validate-refresh-token:
+      not-found: refresh token not found.
+      unauthorized: Session expired, please log in again.
   authentication-user-provider:
     authentication-not-found: "Authenticated user not found."
     invalid-identifier: Invalid user identifier.
@@ -25,6 +29,8 @@ services:
         conflict-email: This account is already registered.
         conflict-handle: Username is already in use.
         role-not-found: Role not found.
+      authenticated:
+        unauthorized: Unauthenticated user.
       refresh:
         bad-request: Cookie not found.
   comment-service:

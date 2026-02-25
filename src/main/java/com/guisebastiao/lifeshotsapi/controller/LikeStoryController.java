@@ -23,12 +23,14 @@ public class LikeStoryController implements LikeStoryControllerDocs {
         this.likeStoryService = likeStoryService;
     }
 
+    @Override
     @PostMapping("/{storyId}")
     public ResponseEntity<DefaultResponse<Void>> likeStory(@PathVariable String storyId, @RequestBody LikeStoryRequest dto) {
         DefaultResponse<Void> response = likeStoryService.likeStory(storyId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping("/{storyId}")
     public ResponseEntity<DefaultResponse<List<LikeStoryResponse>>> findAllLikeStory(@PathVariable String storyId, @Valid PaginationParam pagination) {
         DefaultResponse<List<LikeStoryResponse>> response = likeStoryService.findAllLikeStory(storyId, pagination);

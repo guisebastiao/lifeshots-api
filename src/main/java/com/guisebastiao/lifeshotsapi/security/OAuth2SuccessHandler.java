@@ -5,13 +5,17 @@ import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -19,6 +23,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
+    private final Environment environment;
 
     @Value("${jwt.access-token-duration}")
     private int accessTokenDuration;
@@ -35,10 +40,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService) {
+    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, Environment environment) {
         this.userRepository = userRepository;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
+        this.environment = environment;
     }
 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -51,19 +57,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
 
             String email = oAuth2User.getAttribute("email");
+            String name = oAuth2User.getAttribute("name");
 
             User user = userRepository.findByEmail(email).orElse(null);
 
             if (user == null) {
-                redirectWithError(response, "user_not_registered");
+                redirectWithError(response, "user_not_registered", email, name);
                 return;
             }
 
             String accessToken = accessTokenService.createAccessToken(user);
             String refreshToken = refreshTokenService.createRefreshToken(user);
 
-            response.addHeader("Set-Cookie", createCookie(cookieAccessName, accessToken, accessTokenDuration / 60));
-            response.addHeader("Set-Cookie", createCookie(cookieRefreshName, refreshToken, refreshTokenDuration / 60));
+            generateCookie(response, cookieAccessName, accessToken);
+            generateCookie(response, cookieRefreshName, refreshToken);
 
             response.sendRedirect(frontendUrl + "/oauth/success");
         } catch (Exception ex) {
@@ -72,17 +79,46 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     }
 
     private void redirectWithError(HttpServletResponse response, String errorCode) throws IOException {
-        response.sendRedirect(frontendUrl + "/oauth/error?reason=" + errorCode);
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString(frontendUrl)
+                .path("/oauth/error")
+                .queryParam("reason", errorCode)
+                .build()
+                .encode()
+                .toUriString();
+
+        response.sendRedirect(redirectUrl);
     }
 
-    private String createCookie(String name, String value, int maxAge) {
-        return ResponseCookie.from(name, value)
+    private void redirectWithError(HttpServletResponse response, String errorCode, String email, String name) throws IOException {
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString(frontendUrl)
+                .path("/oauth/error")
+                .queryParam("reason", errorCode)
+                .queryParam("email", email)
+                .queryParam("name", name)
+                .build()
+                .encode()
+                .toUriString();
+
+        response.sendRedirect(redirectUrl);
+    }
+
+    private void generateCookie(HttpServletResponse response, String cookieName, String value) {
+        boolean secure = isProduction();
+
+        ResponseCookie cookie = ResponseCookie.from(cookieName, value)
                 .httpOnly(true)
-                .secure(false)
+                .secure(secure)
                 .path("/")
                 .sameSite("Lax")
-                .maxAge(maxAge)
-                .build()
-                .toString();
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private boolean isProduction() {
+        return Arrays.asList(environment.getActiveProfiles())
+                .contains("prod");
     }
 }

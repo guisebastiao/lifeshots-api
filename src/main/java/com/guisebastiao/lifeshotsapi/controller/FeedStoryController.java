@@ -24,6 +24,7 @@ public class FeedStoryController implements FeedStoryControllerDocs {
         this.feedStoryService = feedStoryService;
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<DefaultResponse<List<StoryFeedResponse>>> feed(@Valid PaginationParam pagination) {
         DefaultResponse<List<StoryFeedResponse>> response = this.feedStoryService.feed(pagination);

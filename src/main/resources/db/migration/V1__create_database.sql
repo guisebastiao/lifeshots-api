@@ -421,7 +421,7 @@ CREATE TYPE notification_type AS ENUM (
     'LIKE_POST',
     'LIKE_COMMENT',
     'LIKE_REPLY_COMMENT',
-    'LIKE_STORY'
+    'LIKE_STORY',
     'NEW_FOLLOWER',
     'COMMENT_POST',
     'REPLY_COMMENT'
@@ -434,7 +434,7 @@ CREATE TABLE notifications
     receiver_id UUID                     NOT NULL,
     title       VARCHAR(255)             NOT NULL,
     message     TEXT                     NOT NULL,
-    type        notification_type,
+    type        notification_type        NOT NULL,
     read        BOOLEAN                  NOT NULL DEFAULT FALSE,
     is_deleted  BOOLEAN                  NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),

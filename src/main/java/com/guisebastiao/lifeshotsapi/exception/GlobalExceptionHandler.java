@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
                 })
                 .toList();
 
-        DefaultResponse<Void> response = DefaultResponse.error(HttpStatus.UNPROCESSABLE_ENTITY.name(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
+        DefaultResponse<Void> response = DefaultResponse.error("VALIDATION_ERROR", getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
 
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
@@ -45,13 +45,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessValidationException.class)
     public ResponseEntity<DefaultResponse<Void>> handleBusinessValidationException(BusinessValidationException e) {
         List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse(e.getField(), e.getMessage()));
-        DefaultResponse<Void> response = DefaultResponse.error(HttpStatus.UNPROCESSABLE_ENTITY.name(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
+        DefaultResponse<Void> response = DefaultResponse.error(e.getErrorStatus(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
+        return ResponseEntity.status(e.getStatus()).body(response);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<DefaultResponse<Void>> handleBadCredentialsException(BadCredentialsException e) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(DefaultResponse.error(HttpStatus.UNAUTHORIZED.name(), getMessage("global-exception-handler.bad-credentials")));
+        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("errorCredentials", e.getMessage()));
+        DefaultResponse<Void> response = DefaultResponse.error("BAD_CREDENTIALS", getMessage("global-exception-handler.bad-credentials"), fieldErrors);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
@@ -63,6 +65,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<DefaultResponse<Void>> handleResponseStatusException(ResponseStatusException e) {
         DefaultResponse<Void> response = DefaultResponse.error(HttpStatus.valueOf(e.getStatusCode().value()).name(), e.getReason());
         return ResponseEntity.status(e.getStatusCode()).body(response);
+    }
+
+    @ExceptionHandler(BusinessTokenInvalidException.class)
+    public ResponseEntity<DefaultResponse<Void>> handleMethodNotAllowed(BusinessTokenInvalidException ex) {
+        DefaultResponse<Void> response = DefaultResponse.error("TOKEN_EXPIRED", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
@@ -24,10 +23,22 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
-        DefaultResponse<Void> responseBody = DefaultResponse.error(HttpStatus.UNAUTHORIZED.name(), getMessage());
+        String error = (String) request.getAttribute("auth_error");
+        DefaultResponse<Void> responseBody = DefaultResponse.error(generateCode(error), getMessage());
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(new ObjectMapper().writeValueAsString(responseBody));
+    }
+
+    private String generateCode(String error) {
+        if (error == null) return "UNAUTHORIZED";
+
+        return switch (error) {
+            case "session_expired" -> "SESSION_EXPIRED";
+            case "token_expired" -> "TOKEN_EXPIRED";
+            case "invalid_token" -> "INVALID_TOKEN";
+            default -> "UNAUTHORIZED";
+        };
     }
 
     private String getMessage() {

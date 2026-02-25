@@ -23,30 +23,35 @@ public class CommentController implements CommentControllerDocs {
         this.commentService = commentService;
     }
 
+    @Override
     @PostMapping("/{postId}")
     public ResponseEntity<DefaultResponse<CommentResponse>> createComment(@PathVariable String postId, @RequestBody @Valid CommentRequest dto) {
         DefaultResponse<CommentResponse> response = this.commentService.createComment(postId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/{postId}")
     public ResponseEntity<DefaultResponse<List<CommentResponse>>> findAllComments(@PathVariable String postId, @Valid PaginationParam pagination) {
         DefaultResponse<List<CommentResponse>> response = this.commentService.findAllComments(postId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<CommentResponse>> updateComment(@PathVariable String commentId, @RequestBody @Valid CommentRequest dto) {
         DefaultResponse<CommentResponse> response = this.commentService.updateComment(commentId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<Void>> deleteComment(@PathVariable String commentId) {
         DefaultResponse<Void> response = this.commentService.deleteComment(commentId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/remove/{postId}/{commentId}")
     public ResponseEntity<DefaultResponse<Void>> removeCommentInPost(@PathVariable String postId, @PathVariable String commentId) {
         DefaultResponse<Void> response = this.commentService.removeCommentInPost(postId, commentId);

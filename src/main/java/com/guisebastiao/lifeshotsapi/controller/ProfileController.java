@@ -24,24 +24,28 @@ public class ProfileController implements ProfileControllerDocs {
         this.profileService = profileService;
     }
 
+    @Override
     @GetMapping("/me")
     public ResponseEntity<DefaultResponse<ProfileResponse>> me() {
         DefaultResponse<ProfileResponse> response = this.profileService.me();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<DefaultResponse<List<ProfileResponse>>> searchProfile(@Valid SearchProfileRequest dto, @Valid PaginationParam pagination) {
         DefaultResponse<List<ProfileResponse>> response = this.profileService.searchProfile(dto, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<ProfileResponse>> findProfileById(@PathVariable String profileId) {
         DefaultResponse<ProfileResponse> response = this.profileService.findProfileById(profileId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping
     public ResponseEntity<DefaultResponse<ProfileResponse>> updateProfile(@RequestBody @Valid ProfileRequest dto) {
         DefaultResponse<ProfileResponse> response = this.profileService.updateProfile(dto);

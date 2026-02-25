@@ -21,24 +21,28 @@ public class PostController implements PostControllerDocs {
         this.postService = postService;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<DefaultResponse<PostResponse>> createPost(@ModelAttribute @Valid PostRequest dto) {
         DefaultResponse<PostResponse> response = postService.createPost(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/{postId}")
     public ResponseEntity<DefaultResponse<PostResponse>> findPostById(@PathVariable String postId) {
         DefaultResponse<PostResponse> response = postService.findPostById(postId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping("/{postId}")
     public ResponseEntity<DefaultResponse<PostResponse>> updatePost(@PathVariable String postId, @ModelAttribute @Valid PostUpdateRequest dto) {
         DefaultResponse<PostResponse> response = postService.updatePost(postId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/{postId}")
     public ResponseEntity<DefaultResponse<Void>> deletePost(@PathVariable String postId) {
         DefaultResponse<Void> response = postService.deletePost(postId);

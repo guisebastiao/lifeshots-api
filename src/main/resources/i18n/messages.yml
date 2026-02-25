@@ -1,8 +1,12 @@
 security:
   access-token-service:
     create-access-token: Error while creating access token.
+  refresh-token-service:
+    validate-refresh-token:
+      not-found: refresh token not found.
+      unauthorized: Session expired, please log in again.
   authentication-user-provider:
-    authentication-not-found: "Authenticated user not found."
+    authentication-not-found: Authenticated user not found.
     invalid-identifier: Invalid user identifier.
   custom-user-details-service:
     user-not-found: User not found.
@@ -16,15 +20,17 @@ services:
       set-profile-privacy:
         conflict: Your account already has this privacy feature.
       update-password:
-        bad-request: "Incorrect password."
+        bad-request: Incorrect password.
       delete-account:
-        bad-request: "Incorrect password."
+        bad-request: Incorrect password.
   auth-service:
     methods:
       register:
         conflict-email: This account is already registered.
         conflict-handle: Username is already in use.
         role-not-found: Role not found.
+      authenticated:
+        unauthorized: Unauthenticated user.
       refresh:
         bad-request: Cookie not found.
   comment-service:

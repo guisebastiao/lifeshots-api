@@ -24,6 +24,7 @@ public class TrendingController implements TrendingControllerDocs {
         this.trendingService = trendingService;
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<DefaultResponse<List<PostResponse>>> trending(@Valid PaginationParam pagination) {
         DefaultResponse<List<PostResponse>> response = this.trendingService.trending(pagination);

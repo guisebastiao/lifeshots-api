@@ -23,6 +23,9 @@ public interface PushSubscriptionRepository extends JpaRepository<PushSubscripti
     @Query("SELECT ps FROM PushSubscription ps WHERE ps.active = true AND ps.user.id = :receiverId")
     List<PushSubscription> findActiveByUser(@Param("receiverId") UUID receiverId);
 
+    @Query("SELECT ps FROM PushSubscription ps WHERE ps.active = false")
+    List<PushSubscription> findAllPushSubscriptionByInactive();
+
     @Modifying
     @Query("UPDATE PushSubscription p SET p.active = false WHERE p.active = true AND (p.lastUsedAt IS NULL OR p.lastUsedAt < :cutoff)")
     void deactivateStaleSubscriptions(@Param("cutoff") Instant cutoff);

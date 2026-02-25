@@ -17,4 +17,9 @@ public class PushScheduler {
     public void deactivateStaleSubscriptions() {
         expiredPushService.deactivateStaleSubscriptions();
     }
+
+    @Scheduled(cron = "0 * * * * *")
+    public void deleteSubscriptionsInactive() {
+        expiredPushService.deleteSubscriptionsInactive();
+    }
 }

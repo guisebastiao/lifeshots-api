@@ -21,12 +21,14 @@ public class RecoverPasswordController implements RecoverPasswordControllerDocs 
         this.recoverPasswordService = recoverPasswordService;
     }
 
+    @Override
     @PostMapping("/forgot")
     public ResponseEntity<DefaultResponse<Void>> forgotPassword(@RequestBody @Valid ForgotPasswordRequest dto) {
         DefaultResponse<Void> response = recoverPasswordService.forgotPassword(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PutMapping
     public ResponseEntity<DefaultResponse<Void>> recoverPassword(@Valid RecoverPasswordTokenParam param, @RequestBody @Valid RecoverPasswordRequest dto) {
         DefaultResponse<Void> response = recoverPasswordService.recoverPassword(param, dto);

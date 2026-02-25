@@ -24,6 +24,7 @@ public class FeedPostController implements FeedPostControllerDocs {
         this.feedPostService = feedPostService;
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<DefaultResponse<List<PostResponse>>> feed(@Valid PaginationParam pagination) {
         DefaultResponse<List<PostResponse>> response = this.feedPostService.feed(pagination);

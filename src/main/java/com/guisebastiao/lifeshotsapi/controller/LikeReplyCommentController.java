@@ -1,5 +1,6 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.guisebastiao.lifeshotsapi.controller.docs.LikeReplyCommentControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.service.LikeReplyCommentService;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/like-reply-comments")
-public class LikeReplyCommentController {
+public class LikeReplyCommentController implements LikeReplyCommentControllerDocs {
 
     private final LikeReplyCommentService likeReplyCommentService;
 
@@ -18,6 +19,7 @@ public class LikeReplyCommentController {
         this.likeReplyCommentService = likeReplyCommentService;
     }
 
+    @Override
     @PostMapping("/{replyCommentId}")
     public ResponseEntity<DefaultResponse<Void>> likeReplyComment(@PathVariable String replyCommentId, @RequestBody @Valid LikeReplyCommentRequest dto) {
         DefaultResponse<Void> response = this.likeReplyCommentService.likeReplyComment(replyCommentId, dto);

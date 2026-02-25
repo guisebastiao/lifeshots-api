@@ -5,16 +5,20 @@ import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.exception.BusinessTokenInvalidException;
+import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
 import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
 import com.guisebastiao.lifeshotsapi.repository.RoleRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.security.RefreshTokenService;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.core.env.Environment;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
@@ -45,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final UserMapper userMapper;
     private final MessageSource messageSource;
+    private final Environment environment;
 
     @Value("${cookie.access-name}")
     private String cookieAccessName;
@@ -52,7 +57,7 @@ public class AuthServiceImpl implements AuthService {
     @Value("${cookie.refresh-name}")
     private String cookieRefreshName;
 
-    public AuthServiceImpl(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, MessageSource messageSource) {
+    public AuthServiceImpl(UserRepository userRepository, RefreshTokenRepository refreshTokenRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, MessageSource messageSource, Environment environment) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.roleRepository = roleRepository;
@@ -62,6 +67,7 @@ public class AuthServiceImpl implements AuthService {
         this.refreshTokenService = refreshTokenService;
         this.userMapper = userMapper;
         this.messageSource = messageSource;
+        this.environment = environment;
     }
 
     @Override
@@ -87,11 +93,11 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> existsUser = userRepository.findByEmail(dto.email());
 
         if (existsUser.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.auth-service.methods.register.conflict-email"));
+            throw new BusinessValidationException("email", HttpStatus.CONFLICT, "VALIDATION_ERROR", getMessage("services.auth-service.methods.register.conflict-email"));
         }
 
         if (userRepository.existsUserByHandle(dto.handle())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.auth-service.methods.register.conflict-handle"));
+            throw new BusinessValidationException("handle", HttpStatus.CONFLICT, "VALIDATION_ERROR", getMessage("services.auth-service.methods.register.conflict-handle"));
         }
 
         Role userRole = roleRepository.findByRoleName("USER")
@@ -116,12 +122,24 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<AuthResponse> authenticated(Authentication authentication) {
+        if (authentication == null) {
+            throw new BusinessTokenInvalidException(getMessage("services.auth-service.methods.authenticated.unauthorized"));
+        }
+
+        User user = (User) authentication.getPrincipal();
+
+        return DefaultResponse.success(userMapper.authDTO(user));
+    }
+
+    @Override
     @Transactional
     public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = getCookieByRequest(request, cookieRefreshName)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.auth-service.methods.refresh.bad-request")));
 
-        RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken);
+        RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken, request);
         User user = refreshEntity.getUser();
 
         refreshTokenRepository.delete(refreshEntity);
@@ -144,9 +162,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void generateCookie(HttpServletResponse response, String cookieName, String value) {
+        boolean secure = isProduction();
+
         ResponseCookie cookie = ResponseCookie.from(cookieName, value)
                 .httpOnly(true)
-                .secure(false)
+                .secure(secure)
                 .path("/")
                 .sameSite("Lax")
                 .build();
@@ -155,9 +175,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void removeCookie(HttpServletResponse response, String cookieName) {
+        boolean secure = isProduction();
+
         ResponseCookie cookie = ResponseCookie.from(cookieName, "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(secure)
                 .path("/")
                 .sameSite("Lax")
                 .maxAge(0)
@@ -173,6 +195,11 @@ public class AuthServiceImpl implements AuthService {
                 .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
+    }
+
+    private boolean isProduction() {
+        return Arrays.asList(environment.getActiveProfiles())
+                .contains("prod");
     }
 
     private String getMessage(String key) {

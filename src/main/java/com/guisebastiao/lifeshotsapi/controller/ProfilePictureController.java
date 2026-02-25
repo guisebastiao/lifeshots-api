@@ -20,18 +20,21 @@ public class ProfilePictureController implements ProfilePictureControllerDocs {
         this.profilePictureService = profilePictureService;
     }
 
+    @Override
     @PostMapping
     public ResponseEntity<DefaultResponse<ProfilePictureResponse>> uploadProfilePicture(@ModelAttribute @Valid ProfilePictureRequest dto) {
         DefaultResponse<ProfilePictureResponse> response = profilePictureService.uploadProfilePicture(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<ProfilePictureResponse>> findProfilePictureById(@PathVariable String profileId) {
         DefaultResponse<ProfilePictureResponse> response = profilePictureService.findProfilePictureById(profileId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping
     public ResponseEntity<DefaultResponse<Void>> deleteProfilePicture() {
         DefaultResponse<Void> response = this.profilePictureService.deleteProfilePicture();

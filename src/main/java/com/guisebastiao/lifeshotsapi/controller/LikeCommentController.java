@@ -19,6 +19,7 @@ public class LikeCommentController implements LikeCommentControllerDocs {
         this.likeCommentService = likeCommentService;
     }
 
+    @Override
     @PostMapping("/{commentId}")
     public ResponseEntity<DefaultResponse<Void>> likeComment(@PathVariable String commentId, @RequestBody @Valid LikeCommentRequest dto) {
         DefaultResponse<Void> response = this.likeCommentService.likeComment(commentId, dto);

@@ -4,17 +4,16 @@ import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Service
 public class RefreshTokenService {
@@ -46,11 +45,15 @@ public class RefreshTokenService {
         return refreshToken.getRefreshToken().toString();
     }
 
-    public RefreshToken validateRefreshToken(String refreshToken) {
+    public RefreshToken validateRefreshToken(String refreshToken, HttpServletRequest request) {
         RefreshToken token = refreshTokenRepository.findById(uuidConverter.toUUID(refreshToken))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("security.refresh-token-service.validate-refresh-token.not-found)")));
+                .orElseThrow(() -> {
+                    request.setAttribute("auth_error", "session_expired");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("security.refresh-token-service.validate-refresh-token.not-found"));
+                });
 
         if (token.getExpiresAt().isBefore(Instant.now())) {
+            request.setAttribute("auth_error", "session_expired");
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.refresh-token-service.validate-refresh-token.unauthorized"));
         }
 

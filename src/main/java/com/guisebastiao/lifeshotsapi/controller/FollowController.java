@@ -23,24 +23,28 @@ public class FollowController implements FollowControllerDocs {
         this.followService = followService;
     }
 
+    @Override
     @PostMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<Void>> follow(@PathVariable String profileId) {
         DefaultResponse<Void> response = this.followService.follow(profileId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping
     public ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllMyFollows(@Valid FollowParam param, @Valid PaginationParam pagination) {
         DefaultResponse<List<FollowResponse>> response = this.followService.findAllMyFollowers(param, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllFollows(@PathVariable String profileId, @Valid FollowParam param, @Valid PaginationParam pagination) {
         DefaultResponse<List<FollowResponse>> response = this.followService.findAllFollowers(profileId, param, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<Void>> unfollow(@PathVariable String profileId) {
         DefaultResponse<Void> response = this.followService.unfollow(profileId);

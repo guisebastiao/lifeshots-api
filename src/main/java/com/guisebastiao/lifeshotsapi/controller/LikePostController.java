@@ -23,12 +23,14 @@ public class LikePostController implements LikePostControllerDocs {
         this.likePostService = likePostService;
     }
 
+    @Override
     @PostMapping("/{postId}")
     public ResponseEntity<DefaultResponse<Void>> likePost(@PathVariable String postId, @RequestBody @Valid LikePostRequest dto) {
         DefaultResponse<Void> response = this.likePostService.likePost(postId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping("/{postId}")
     public ResponseEntity<DefaultResponse<List<LikePostResponse>>> findAllLikePost(@PathVariable String postId, @Valid PaginationParam pagination) {
         DefaultResponse<List<LikePostResponse>> response = this.likePostService.findAllLikePost(postId, pagination);

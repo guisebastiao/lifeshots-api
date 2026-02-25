@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -105,7 +106,13 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
     }
 
     private String generateLink(String code) {
-        return String.format(frontendUrl + "/recover-password/" + code);
+       return UriComponentsBuilder
+                .fromUriString(frontendUrl)
+                .path("/recover-password")
+                .queryParam("token", code)
+                .build()
+                .encode()
+                .toUriString();
     }
 
     private String getMessage(String key) {

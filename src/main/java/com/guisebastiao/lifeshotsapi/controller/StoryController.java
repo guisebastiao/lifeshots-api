@@ -24,30 +24,35 @@ public class StoryController implements StoryControllerDocs {
         this.storyService = storyService;
     }
 
+    @Override
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DefaultResponse<StoryResponse>> createStory(@ModelAttribute @Valid StoryRequest dto) {
         DefaultResponse<StoryResponse> response = this.storyService.createStory(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Override
     @GetMapping("/{storyId}")
     public ResponseEntity<DefaultResponse<StoryResponse>> findStoryById(@PathVariable String storyId) {
         DefaultResponse<StoryResponse> response = this.storyService.findStoryById(storyId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @GetMapping("/me")
     public ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesByAuthUser() {
         DefaultResponse<List<StoryResponse>> response = this.storyService.findStoriesByAuthUser();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @PatchMapping("/{storyId}")
     public ResponseEntity<DefaultResponse<StoryResponse>> updateStory(@PathVariable String storyId, @RequestBody @Valid StoryUpdateRequest dto) {
         DefaultResponse<StoryResponse> response = this.storyService.updateStory(storyId, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Override
     @DeleteMapping("/{storyId}")
     public ResponseEntity<DefaultResponse<Void>> deleteStory(@PathVariable String storyId) {
         DefaultResponse<Void> response = this.storyService.deleteStory(storyId);
