@@ -3,7 +3,9 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.repository.LikeReplyCommentRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
@@ -48,12 +50,12 @@ public class LikeReplyCommentServiceImpl implements LikeReplyCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         ReplyComment replyComment = replyCommentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(replyCommentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-reply-comment-service.methods.like-reply-comment.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-reply-comment-service.methods.like-reply-comment.not-found")));
 
         boolean alreadyLiked = likeReplyCommentRepository.existsByReplyCommentAndProfile(replyComment, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
                     getMessage("services.like-reply-comment-service.methods.like-reply-comment.conflict-already-liked") :
                     getMessage("services.like-reply-comment-service.methods.like-reply-comment.conflict-not-liked")
             );

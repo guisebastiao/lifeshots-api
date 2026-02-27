@@ -5,7 +5,9 @@ import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikePostRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.LikePostResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.LikePostMapper;
 import com.guisebastiao.lifeshotsapi.repository.LikePostRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
@@ -22,9 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -59,12 +59,12 @@ public class LikePostServiceImpl implements LikePostService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.like-post.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.like-post.not-found")));
 
         boolean alreadyLiked = likePostRepository.alreadyLikedPost(post, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
                     getMessage("services.like-post-service.methods.like-post.conflict-already-liked") :
                     getMessage("services.like-post-service.methods.like-post.conflict-not-liked")
             );
@@ -87,7 +87,7 @@ public class LikePostServiceImpl implements LikePostService {
     @Transactional(readOnly = true)
     public DefaultResponse<List<LikePostResponse>> findAllLikePost(String postId, PaginationParam pagination) {
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.find-all-like-post.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.find-all-like-post.not-found")));
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Direction.DESC, "createdAt"));
 

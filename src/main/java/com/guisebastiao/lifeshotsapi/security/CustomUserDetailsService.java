@@ -1,5 +1,7 @@
 package com.guisebastiao.lifeshotsapi.security;
 
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -22,10 +24,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         return this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(getMessage()));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.USER_NOT_FOUND, getMessage("security.custom-user-details-service.user-not-found")));
     }
 
-    private String getMessage() {
-        return messageSource.getMessage("security.custom-user-details-service.user-not-found", null, LocaleContextHolder.getLocale());
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

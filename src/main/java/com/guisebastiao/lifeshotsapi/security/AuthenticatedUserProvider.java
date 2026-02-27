@@ -1,13 +1,13 @@
 package com.guisebastiao.lifeshotsapi.security;
 
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class AuthenticatedUserProvider {
@@ -22,7 +22,7 @@ public class AuthenticatedUserProvider {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.authentication-user-provider.authentication-not-found"));
+            throw new BusinessException(BusinessHttpStatus.TOKEN_INVALID, getMessage("security.authentication-user-provider.authentication-not-found"));
         }
 
         Object principal = authentication.getPrincipal();
@@ -32,7 +32,7 @@ public class AuthenticatedUserProvider {
             return user;
         }
 
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.authentication-user-provider.invalid-identifier"));
+        throw new BusinessException(BusinessHttpStatus.TOKEN_INVALID, getMessage("security.authentication-user-provider.invalid-identifier"));
     }
 
     private String getMessage(String key) {

@@ -8,6 +8,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.PostPicture;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
@@ -22,10 +24,8 @@ import io.minio.RemoveObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.InputStream;
 import java.util.List;
@@ -82,12 +82,12 @@ public class PostServiceImpl implements PostService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-id.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-id.not-found")));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(post.getProfile(), profileAuth);
 
         if (post.getProfile().isPrivate() && !mutualFollow && !profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.post-service.methods.find-post-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.post-service.methods.find-post-by-id.forbidden"));
         }
 
         return DefaultResponse.success(postMapper.toDTO(post));
@@ -104,11 +104,11 @@ public class PostServiceImpl implements PostService {
         int totalPictures = post.getPostPictures().size() - removeFiles.size() + newFiles.size();
 
         if (totalPictures > 10) {
-            throw new BusinessValidationException("newFiles", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
+            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "newFiles", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
         }
 
         if (totalPictures <= 0) {
-            throw new BusinessValidationException("removeFiles", HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
+            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "removeFiles", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
         }
 
         if (!removeFiles.isEmpty()) {
@@ -117,7 +117,7 @@ public class PostServiceImpl implements PostService {
                     .toList();
 
             if (postPictures.size() != removeFiles.size()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.update-post.bad-request-invalid-pictures"));
+                throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.update-post.bad-request-invalid-pictures"));
             }
 
             postPictures.forEach(postPicture -> {
@@ -129,7 +129,7 @@ public class PostServiceImpl implements PostService {
                                     .build()
                     );
                 } catch (Exception error) {
-                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, getMessage("services.post-service.methods.update-post.internal-server-error"), error);
+                    throw new BusinessException(BusinessHttpStatus.INTERNAL_SERVER_ERROR, getMessage("services.post-service.methods.update-post.internal-server-error"));
                 }
             });
 
@@ -167,10 +167,10 @@ public class PostServiceImpl implements PostService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.not-found")));
 
         if (!profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.forbidden"));
         }
 
         return post;
@@ -194,7 +194,7 @@ public class PostServiceImpl implements PostService {
                                         .build()
                         );
                     } catch (Exception error) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.generate-pos-pictures.bad-request"), error);
+                        throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.generate-pos-pictures.bad-request"));
                     }
 
                     PostPicture picture = new PostPicture();

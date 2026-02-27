@@ -20,14 +20,19 @@ import java.util.Optional;
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
 
+    private final RefreshTokenService refreshTokenService;
     private final AccessTokenService accessTokenService;
     private final UserRepository userRepository;
     private final UUIDConverter uuidConverter;
 
     @Value("${cookie.access-name}")
-    private String cookieName;
+    private String cookieAccessName;
 
-    public SecurityFilter(AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter) {
+    @Value("${cookie.refresh-name}")
+    private String cookieRefreshName;
+
+    public SecurityFilter(RefreshTokenService refreshTokenService, AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter) {
+        this.refreshTokenService = refreshTokenService;
         this.accessTokenService = accessTokenService;
         this.userRepository = userRepository;
         this.uuidConverter = uuidConverter;
@@ -35,13 +40,15 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        Optional<String> accessToken = recoverToken(request);
+        Optional<String> accessToken = recoverToken(request, cookieAccessName);
+        Optional<String> refreshToken = recoverToken(request, cookieRefreshName);
 
-        if (accessToken.isEmpty()) {
+        if (accessToken.isEmpty() || refreshToken.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        refreshTokenService.validateRefreshToken(refreshToken.get(), request);
         String userId = accessTokenService.validateAccessToken(accessToken.get(), request);
 
         if (userId == null) {
@@ -57,7 +64,7 @@ public class SecurityFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private Optional<String> recoverToken(HttpServletRequest request) {
+    private Optional<String> recoverToken(HttpServletRequest request, String cookieName) {
         return Optional.ofNullable(request.getCookies())
                 .stream()
                 .flatMap(Arrays::stream)

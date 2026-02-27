@@ -3,7 +3,9 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeCommentRequest;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.repository.*;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.LikeCommentService;
@@ -12,9 +14,7 @@ import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LikeCommentServiceImpl implements LikeCommentService {
@@ -45,12 +45,12 @@ public class LikeCommentServiceImpl implements LikeCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-comment-service.methods.like-comment.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-comment-service.methods.like-comment.not-found")));
 
         boolean alreadyLiked = likeCommentRepository.existsByCommentAndProfile(comment, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
                     getMessage("services.like-comment-service.methods.like-comment.conflict-already-liked") :
                     getMessage("services.like-comment-service.methods.like-comment.conflict-not-liked")
             );

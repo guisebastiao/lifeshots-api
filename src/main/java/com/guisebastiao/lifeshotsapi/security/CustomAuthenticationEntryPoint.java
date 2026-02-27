@@ -31,7 +31,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     }
 
     private String generateCode(String error) {
-        if (error == null) return "UNAUTHORIZED";
+        if (error == null) return "SESSION_EXPIRED";
 
         return switch (error) {
             case "session_expired" -> "SESSION_EXPIRED";

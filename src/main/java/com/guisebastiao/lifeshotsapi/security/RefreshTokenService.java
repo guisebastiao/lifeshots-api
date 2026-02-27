@@ -2,16 +2,16 @@ package com.guisebastiao.lifeshotsapi.security;
 
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 
@@ -45,16 +45,14 @@ public class RefreshTokenService {
         return refreshToken.getRefreshToken().toString();
     }
 
+    @Transactional(readOnly = true)
     public RefreshToken validateRefreshToken(String refreshToken, HttpServletRequest request) {
         RefreshToken token = refreshTokenRepository.findById(uuidConverter.toUUID(refreshToken))
-                .orElseThrow(() -> {
-                    request.setAttribute("auth_error", "session_expired");
-                    return new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("security.refresh-token-service.validate-refresh-token.not-found"));
-                });
+                .orElseThrow(() ->
+                    new BusinessException(BusinessHttpStatus.SESSION_EXPIRED, getMessage("security.refresh-token-service.validate-refresh-token.not-found")));
 
         if (token.getExpiresAt().isBefore(Instant.now())) {
-            request.setAttribute("auth_error", "session_expired");
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, getMessage("security.refresh-token-service.validate-refresh-token.unauthorized"));
+            throw new BusinessException(BusinessHttpStatus.SESSION_EXPIRED, getMessage("security.refresh-token-service.validate-refresh-token.unauthorized"));
         }
 
         return token;

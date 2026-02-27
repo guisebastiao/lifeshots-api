@@ -5,15 +5,14 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -48,7 +47,7 @@ public class AccessTokenService {
                     .withIssuer("lifeshots")
                     .sign(algorithm);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, getMessage());
+            throw new BusinessException(BusinessHttpStatus.UNAUTHORIZED, getMessage("security.access-token-service.create-access-token"));
         }
     }
 
@@ -69,7 +68,7 @@ public class AccessTokenService {
         }
     }
 
-    private String getMessage() {
-        return messageSource.getMessage("security.access-token-service.create-access-token", null, LocaleContextHolder.getLocale());
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

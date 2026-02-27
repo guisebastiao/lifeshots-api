@@ -5,7 +5,9 @@ import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeStoryRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.LikeStoryResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.LikeStoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.LikeStoryRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
@@ -22,9 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -59,16 +59,16 @@ public class LikeStoryServiceImpl implements LikeStoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.like-story.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.like-story.not-found")));
 
         boolean alreadyLiked = likeStoryRepository.alreadyLikedStory(story, profile);
 
         if (story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.like-story-service.methods.like-story.bad-request"));
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.like-story-service.methods.like-story.bad-request"));
         }
 
         if (alreadyLiked == dto.like()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, dto.like() ?
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
                     getMessage("services.like-story-service.methods.like-story.conflict-already-liked") :
                     getMessage("services.like-story-service.methods.like-story.conflict-not-liked")
             );
@@ -92,10 +92,10 @@ public class LikeStoryServiceImpl implements LikeStoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.find-all-like-story.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-story-service.methods.find-all-like-story.not-found")));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.like-story-service.methods.find-all-like-story.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.like-story-service.methods.find-all-like-story.forbidden"));
         }
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Direction.DESC, "createdAt"));

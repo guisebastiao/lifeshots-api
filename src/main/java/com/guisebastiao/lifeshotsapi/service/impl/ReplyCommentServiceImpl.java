@@ -5,7 +5,9 @@ import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ReplyCommentResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ReplyCommentMapper;
 import com.guisebastiao.lifeshotsapi.repository.*;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
@@ -18,10 +20,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -58,7 +58,7 @@ public class ReplyCommentServiceImpl implements ReplyCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.create-reply-comment.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.create-reply-comment.not-found")));
 
         ReplyComment replyComment = replyCommentMapper.toEntity(dto);
         replyComment.setProfile(profile);
@@ -89,7 +89,7 @@ public class ReplyCommentServiceImpl implements ReplyCommentService {
     @Transactional(readOnly = true)
     public DefaultResponse<List<ReplyCommentResponse>> findAllReplyComments(String commentId, PaginationParam pagination) {
         Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.find-all-reply-comments.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.find-all-reply-comments.not-found")));
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt")));
 
@@ -143,17 +143,17 @@ public class ReplyCommentServiceImpl implements ReplyCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.post-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.post-not-found")));
 
         ReplyComment replyComment = replyCommentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(replyCommentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.comment-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.comment-not-found")));
 
         if (!post.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.forbidden"));
         }
 
         if (replyComment.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.bad-request"));
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.reply-comment-service.methods.remove-reply-comment-in-comment.bad-request"));
         }
 
         replyComment.setRemoved(true);
@@ -166,10 +166,10 @@ public class ReplyCommentServiceImpl implements ReplyCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         ReplyComment replyComment = replyCommentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(replyCommentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.find-reply-comment-and-belongs-to-the-profile.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.reply-comment-service.methods.find-reply-comment-and-belongs-to-the-profile.not-found")));
 
         if (!profile.getId().equals(replyComment.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.reply-comment-service.methods.find-reply-comment-and-belongs-to-the-profile.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.reply-comment-service.methods.find-reply-comment-and-belongs-to-the-profile.forbidden"));
         }
 
         return replyComment;

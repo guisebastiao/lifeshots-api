@@ -5,14 +5,14 @@ import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
-import com.guisebastiao.lifeshotsapi.exception.BusinessTokenInvalidException;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
 import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
 import com.guisebastiao.lifeshotsapi.repository.RoleRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.AccessTokenService;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.security.RefreshTokenService;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
 import jakarta.servlet.http.Cookie;
@@ -24,14 +24,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -93,15 +91,15 @@ public class AuthServiceImpl implements AuthService {
         Optional<User> existsUser = userRepository.findByEmail(dto.email());
 
         if (existsUser.isPresent()) {
-            throw new BusinessValidationException("email", HttpStatus.CONFLICT, "VALIDATION_ERROR", getMessage("services.auth-service.methods.register.conflict-email"));
+            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "email", getMessage("services.auth-service.methods.register.conflict-email"));
         }
 
         if (userRepository.existsUserByHandle(dto.handle())) {
-            throw new BusinessValidationException("handle", HttpStatus.CONFLICT, "VALIDATION_ERROR", getMessage("services.auth-service.methods.register.conflict-handle"));
+            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "handle", getMessage("services.auth-service.methods.register.conflict-handle"));
         }
 
         Role userRole = roleRepository.findByRoleName("USER")
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.auth-service.methods.register.role-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.auth-service.methods.register.role-not-found")));
 
         NotificationSetting notificationSetting = new NotificationSetting();
 
@@ -122,22 +120,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public DefaultResponse<AuthResponse> authenticated(Authentication authentication) {
-        if (authentication == null) {
-            throw new BusinessTokenInvalidException(getMessage("services.auth-service.methods.authenticated.unauthorized"));
-        }
-
-        User user = (User) authentication.getPrincipal();
-
-        return DefaultResponse.success(userMapper.authDTO(user));
-    }
-
-    @Override
     @Transactional
     public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = getCookieByRequest(request, cookieRefreshName)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.auth-service.methods.refresh.bad-request")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.auth-service.methods.refresh.bad-request")));
 
         RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken, request);
         User user = refreshEntity.getUser();

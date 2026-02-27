@@ -7,6 +7,8 @@ import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
@@ -18,9 +20,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -75,12 +75,12 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
+                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
 
         if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
         }
 
         return DefaultResponse.success(profileMapper.toDTO(profile));

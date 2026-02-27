@@ -1,10 +1,67 @@
+common:
+  not-found:
+    post: &post-not-found Post not found.
+    comment: &comment-not-found Comment not found.
+    reply-comment: &reply-comment-not-found Reply to comment not found.
+    profile: &profile-not-found Profile not found.
+    story: &story-not-found Story not found.
+    notification: &notification-not-found Notification not found.
+    profile-picture: &profile-picture-not-found The user does not have a profile picture.
+    role: &role-not-found Role not found.
+  forbidden:
+    resource: &forbidden-resource You do not have permission to manipulate this resource.
+    view: &forbidden-view You do not have permission to view this resource.
+    remove: &forbidden-remove You do not have permission to remove this resource.
+    private-profile: &forbidden-private-profile Private profile. You do not have permission to access this content.
+    action: &forbidden-action You do not have permission to perform this action.
+  conflict:
+    already-liked: &conflict-already-liked You have already liked this item.
+    not-liked: &conflict-not-liked You have not liked this item.
+  bad-request:
+    file-read: &bad-request-file-read Failed to read the uploaded file. Please verify that the file is valid.
+    wrong-password: &bad-request-wrong-password Incorrect password.
+  notification:
+    forbidden-view: &notification-forbidden-view You do not have permission to view this notification.
+    forbidden-read: &notification-forbidden-read You do not have permission to read this notification.
+    forbidden-delete: &notification-forbidden-delete You do not have permission to delete this notification.
+  validation:
+    password: &password-validation
+      not-blank: Enter your password.
+      length: Your password must be between 6 and 20 characters.
+      pattern:
+        capital-letter: Your password must contain at least one uppercase letter.
+        special-character: Your password must contain at least one special character.
+        two-numbers: Your password must contain at least two numbers.
+    confirm-password: &confirm-password-validation
+      not-blank: Confirm your password.
+      length: Your password must be between 6 and 20 characters.
+      pattern:
+        capital-letter: Your password must contain at least one uppercase letter.
+        special-character: Your password must contain at least one special character.
+        two-numbers: Your password must contain at least two numbers.
+    email: &email-validation
+      not-blank: Enter your email.
+      is-valid: Enter a valid email address.
+      length: Email must have a maximum of 250 characters.
+    pagination: &pagination-validation
+      offset:
+        not-null: Page number is required.
+        min: Page number must be greater than zero.
+      limit:
+        not-null: Item quantity is required.
+        min: Minimum item quantity is 1.
+        max: Maximum item quantity is 50.
+    file: &file-validation
+      validate-filesize: The image must be a maximum of 5MB.
+      validate-mimetype: Unsupported image format.
+
 security:
   access-token-service:
-    create-access-token: Error while creating access token.
+    create-access-token: Error creating access token.
   refresh-token-service:
     validate-refresh-token:
-      not-found: refresh token not found.
-      unauthorized: Session expired, please log in again.
+      not-found: Refresh token not found.
+      unauthorized: Session expired. Please log in again.
   authentication-user-provider:
     authentication-not-found: Authenticated user not found.
     invalid-identifier: Invalid user identifier.
@@ -13,194 +70,183 @@ security:
   custom-access-denied-handler:
     message: You do not have permission to access this resource.
   custom-authentication-entry-point:
-    message: You need to be logged in to access this feature.
+    message: You must be authenticated to access this resource.
+
 services:
   account-service:
     methods:
       set-profile-privacy:
-        conflict: Your account already has this privacy feature.
+        conflict: Your account already has this privacy setting.
       update-password:
-        bad-request: Incorrect password.
+        bad-request: *bad-request-wrong-password
       delete-account:
-        bad-request: Incorrect password.
+        bad-request: *bad-request-wrong-password
   auth-service:
     methods:
       register:
-        conflict-email: This account is already registered.
+        conflict-email: This email is already registered.
         conflict-handle: Username is already in use.
-        role-not-found: Role not found.
+        role-not-found: *role-not-found
       authenticated:
-        unauthorized: Unauthenticated user.
+        unauthorized: User not authenticated.
       refresh:
         bad-request: Cookie not found.
   comment-service:
     methods:
       create-comment:
-        not-found: Post not found.
+        not-found: *post-not-found
       find-all-comments:
-        not-found: Post not found.
+        not-found: *post-not-found
       find-comment-and-belongs-to-the-profile:
-        not-found: Comment not found.
-        forbidden: You do not have permission to manipulate this comment.
+        not-found: *comment-not-found
+        forbidden: *forbidden-resource
       remove-comment-in-post:
-        post-not-found: Post not found.
-        comment-not-found: comment not found.
-        forbidden: You do not have permission to remove this comment.
-        bad-request: You can simply delete the comment yourself.
+        post-not-found: *post-not-found
+        comment-not-found: *comment-not-found
+        forbidden: *forbidden-remove
+        bad-request: You can simply delete the comment.
   follow-service:
     methods:
       follow:
-        not-found: Profile not found.
-        conflict: You can't follow yourself.
+        not-found: *profile-not-found
+        conflict: You cannot follow yourself.
         bad-request: You are already following this account.
       find-all-followers:
-        not-found: Profile not found.
+        not-found: *profile-not-found
       unfollow:
-        not-found: Profile not found.
-        conflict: You can't follow yourself.
-        bad-request: You don't follow the user.
+        not-found: *profile-not-found
+        conflict: You cannot follow yourself.
+        bad-request: You do not follow this user.
   like-comment-service:
     methods:
       like-comment:
-        not-found: Comment not found.
-        conflict-already-liked: You already liked this comment.
-        conflict-not-liked: You didn't like this comment.
+        not-found: *comment-not-found
+        conflict-already-liked: *conflict-already-liked
+        conflict-not-liked: *conflict-not-liked
   like-post-service:
     methods:
       like-post:
-        not-found: Post not found.
-        conflict-already-liked: You already liked this post.
-        conflict-not-liked: You didn't liked this post.
+        not-found: *post-not-found
+        conflict-already-liked: *conflict-already-liked
+        conflict-not-liked: *conflict-not-liked
       find-all-like-post:
-        not-found: Post not found.
+        not-found: *post-not-found
   like-reply-comment-service:
     methods:
       like-reply-comment:
-        not-found: Comment not found.
-        conflict-already-liked: You already liked this comment.
-        conflict-not-liked: You didn't like this comment.
+        not-found: *comment-not-found
+        conflict-already-liked: *conflict-already-liked
+        conflict-not-liked: *conflict-not-liked
   like-story-service:
     methods:
       like-story:
-        not-found: Story not found.
-        bad-request: You can't like your own story.
-        conflict-already-liked: You already liked this story.
-        conflict-not-liked: You didn't like this story.
+        not-found: *story-not-found
+        bad-request: You cannot like your own story.
+        conflict-already-liked: *conflict-already-liked
+        conflict-not-liked: *conflict-not-liked
       find-all-like-story:
-        not-found: Story not found.
-        forbidden: You are not allowed to see who liked this story.
+        not-found: *story-not-found
+        forbidden: *forbidden-view
   notification-service:
     methods:
       find-notification-by-id:
-        not-found: Notification not found.
-        forbidden: You are not allowed to view this notification.
+        not-found: *notification-not-found
+        forbidden: *notification-forbidden-view
       read-notification-by-id:
-        not-found: Notification not found.
-        forbidden: You do not have permission to read this notification.
+        not-found: *notification-not-found
+        forbidden: *notification-forbidden-read
       delete-notification-by-id:
-        not-found: Notification not found.
-        forbidden: You do not have permission to delete this notification.
+        not-found: *notification-not-found
+        forbidden: *notification-forbidden-delete
   post-service:
     methods:
       find-post-by-id:
-        not-found: Post not found.
-        forbidden: Private profile, you do not have permission to view this post.
+        not-found: *post-not-found
+        forbidden: *forbidden-private-profile
       update-post:
-        bad-request-max-pictures: The publication cannot have more than ten images.
-        bad-request-min-pictures: The publication must contain at least one image.
+        bad-request-max-pictures: A post cannot have more than ten images.
+        bad-request-min-pictures: A post must contain at least one image.
         internal-server-error: Failed to delete the file.
-        bad-request-invalid-pictures: One or more pictures do not belong to this post.
+        bad-request-invalid-pictures: One or more images do not belong to this post.
       find-post-and-belongs-to-the-profile:
-        not-found: Post not found.
-        forbidden: You do not have permission to manipulate this publication.
-      generate-pos-pictures:
-        bad-request: Failed to read the uploaded file, please check if the file is valid.
+        not-found: *post-not-found
+        forbidden: *forbidden-resource
+      generate-post-pictures:
+        bad-request: *bad-request-file-read
   profile-picture-service:
     methods:
       upload-profile-picture:
-        not-found: Profile not found.
+        not-found: *profile-not-found
         conflict: You already have a profile picture.
-        bad-request: Failed to read the uploaded file, please check if the file is valid.
+        bad-request: *bad-request-file-read
       find-profile-picture-by-id:
-        not-found: The user does not have a profile picture.
+        not-found: *profile-picture-not-found
       delete-profile-picture:
-        profile-not-found: Profile not found.
-        picture-not-found: The user does not have a profile picture.
-        bad-request: Failed to read the uploaded file, please check if the file is valid.
+        profile-not-found: *profile-not-found
+        picture-not-found: *profile-picture-not-found
+        bad-request: *bad-request-file-read
   profile-service:
     methods:
       find-profile-by-id:
-        not-found: Profile not found.
-        forbidden: Private profile, no permission to verify this profile.
+        not-found: *profile-not-found
+        forbidden: *forbidden-private-profile
   recover-password-service:
     methods:
       recover-password:
-        not-found: Invalid or non existent recovery link.
+        not-found: Invalid or non-existent recovery link.
         bad-request: The recovery link has expired or has already been used.
   reply-comment-service:
     methods:
       create-reply-comment:
-        not-found: Comment not found.
+        not-found: *comment-not-found
       find-all-reply-comments:
-        not-found: Comment not found.
+        not-found: *comment-not-found
       remove-reply-comment-in-comment:
-        post-not-found: Post not found.
-        comment-not-found: Comment not found.
-        forbidden: You do not have permission to remove this comment.
-        bad-request: You can simply delete the comment yourself.
+        post-not-found: *post-not-found
+        comment-not-found: *comment-not-found
+        forbidden: *forbidden-remove
+        bad-request: You can simply delete the comment.
       find-reply-comment-and-belongs-to-the-profile:
-        not-found: Comment response not found.
-        forbidden: You do not have permission to manipulate this comment.
+        not-found: *reply-comment-not-found
+        forbidden: *forbidden-resource
   story-service:
     methods:
       create-story:
-        limit-bad-request: Stories limit reached.
-        file-bad-request: Failed to read the uploaded file, please check if the file is valid.
+        limit-bad-request: Story limit reached.
+        file-bad-request: *bad-request-file-read
       find-story-by-id:
-        not-found: Story not found.
-        forbidden: This profile is private; you are not allowed to view this story.
+        not-found: *story-not-found
+        forbidden: *forbidden-private-profile
       find-story-and-belongs-to-the-profile:
-        not-found: Story not found.
-        forbidden: You do not have permission to manipulate this story.
+        not-found: *story-not-found
+        forbidden: *forbidden-resource
+
 messages:
   comment-post:
-    title: New comment
+    title: New Comment
     message: "{0} commented on your post."
   follow-account:
-    title: New follower
+    title: New Follower
     message: "{0} started following you."
   like-post:
-    title: New like
+    title: New Like
     message: "{0} liked your post."
   like-comment:
-    title: Comment liked
+    title: Comment Liked
     message: "{0} liked your comment."
   like-reply-comment:
-    title: Reply liked
+    title: Reply Liked
     message: "{0} liked your reply."
   reply-comment:
-    title: New reply
+    title: New Reply
     message: "{0} replied to your comment."
   like-story:
-    title: Story liked
+    title: Story Liked
     message: "{0} liked your story."
+
 validation:
-  notification-param:
-    offset:
-      not-null: The page number is required.
-      min: The page number must be greater than zero.
-    limit:
-      not-null: The quantity of items is mandatory.
-      min: The minimum quantity of items is 1.
-      max: The maximum number of items is 50.
-  pagination-param:
-    offset:
-      not-null: The page number is required.
-      min: The page number must be greater than zero.
-    limit:
-      not-null: The quantity of items is mandatory.
-      min: The minimum quantity of items is 1.
-      max: The maximum number of items is 50.
+  notification-param: *pagination-validation
+  pagination-param: *pagination-validation
   recover-password-token-param:
     token:
       not-blank: Token is required.
@@ -210,183 +256,132 @@ validation:
       invalid-enum: Invalid type.
   comment-request:
     content:
-      not-blank: Provide your comment.
-      length: The comment must be less than 300 characters.
+      not-blank: Enter your comment.
+      length: Comment must be less than 300 characters.
   delete-account-request:
-    password:
-      not-blank: Enter your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
+    password: *password-validation
   delete-request:
     ids:
-      not-null: The list of IDs must not be null.
-      not-empty: The list of IDs must not be empty.
+      not-null: ID list cannot be null.
+      not-empty: ID list cannot be empty.
   forgot-password-request:
-    email:
-      not-blank: Enter your email.
-      is-valid: Please provide a valid email.
-      length: The email must have a maximum of 250 characters.
+    email: *email-validation
   like-comment-request:
     like:
-      not-null: Enter the like value.
+      not-null: Provide the like value.
   like-post-request:
     like:
-      not-null: Enter the like value.
+      not-null: Provide the like value.
   like-reply-comment-request:
     like:
-      not-null: Enter the like value.
+      not-null: Provide the like value.
   like-story-request:
     like:
-      not-null: Enter the like value.
+      not-null: Provide the like value.
   login-request:
-    email:
-      not-blank: Enter your email.
-      is-valid: Please provide a valid email.
-      length: The email must have a maximum of 250 characters.
-    password:
-      not-blank: Enter your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
+    email: *email-validation
+    password: *password-validation
   post-request:
     content:
-      length: The post description must be less than 300 characters.
+      length: Post description must be less than 300 characters.
     files:
-      not-null: At least one image is required for publication.
+      not-null: At least one image is required for the post.
       validate-max-files: Only ten images are allowed per post.
-      validate-filesize: The image for the story must be a maximum of 5MB.
-      validate-mimetype: Image format not supported.
+      validate-filesize: The image must be a maximum of 5MB.
+      validate-mimetype: Unsupported image format.
   post-update-request:
     content:
-      length: The post description must be less than 300 characters.
+      length: Post description must be less than 300 characters.
     files:
-      not-null: At least one image is required for publication.
+      not-null: At least one image is required for the post.
       validate-max-files: Only ten images are allowed per post.
-      validate-filesize: The image for the story must be a maximum of 5MB.
-      validate-mimetype: Image format not supported.
+      validate-filesize: The image must be a maximum of 5MB.
+      validate-mimetype: Unsupported image format.
   profile-picture-request:
-    file:
-      validate-filesize: The image for the story must be a maximum of 5MB.
-      validate-mimetype: Image format not supported.
+    file: *file-validation
   profile-privacy-request:
     privacy:
-      not-null: Please share your account privacy settings.
+      not-null: Provide your account privacy setting.
   profile-request:
     full-name:
-      length: Your full name must be less than 250 characters long.
+      length: Full name must be less than 250 characters.
     bio:
-      length: Your biography must be less than 300 characters.
+      length: Bio must be less than 300 characters.
   push-subscription-request:
     endpoint:
-      not-blank: Please provide the endpoint.
+      not-blank: Provide the endpoint.
     device-id:
-      not-blank: Please provide the deviceId.
+      not-blank: Provide the deviceId.
     user-agent:
-      not-blank: Please provide the userAgent.
+      not-blank: Provide the userAgent.
     keys:
       p256dh:
-        not-blank: Please provide the p256dh.
+        not-blank: Provide the p256dh.
       auth:
-        not-blank: Please provide the auth.
+        not-blank: Provide the auth.
   recover-password-request:
     password-matcher:
-      message: The passwords don't match.
-    new-password:
-      not-blank: Enter your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
-    confirm-password:
-      not-blank: Confirm your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
+      message: Passwords do not match.
+    new-password: *password-validation
+    confirm-password: *confirm-password-validation
   register-request:
     password-matcher:
-      message: The passwords don't match.
+      message: Passwords do not match.
     handle:
-      not-blank: Your username must be between 3 and 20 characters long.
+      not-blank: Username must be between 3 and 20 characters.
       pattern:
-        handle-validation: Your username must begin with a letter and contain only letters, numbers, periods, or underscores, with no spaces.
+        handle-validation: Username must start with a letter and contain only letters, numbers, dots, or underscores, without spaces.
     fullname:
       not-blank: Full name is required.
       length: Full name must be between 3 and 250 characters.
-    email:
-      not-blank: Enter your email.
-      is-valid: Please provide a valid email.
-      length: The email must have a maximum of 250 characters.
-    password:
-      not-blank: Enter your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
-    confirm-password:
-      not-blank: Confirm your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
+    email: *email-validation
+    password: *password-validation
+    confirm-password: *confirm-password-validation
   reply-comment-request:
     content:
-      not-blank: Please provide your comment.
-      length: The comment must be less than 300 characters.
+      not-blank: Enter your comment.
+      length: Comment must be less than 300 characters.
   search-profile-request:
     search:
-      not-blank: Please enter the name of the profile you want to search.
+      not-blank: Enter the profile name you want to search.
       length: At least 3 characters are required to search for a profile.
   story-request:
     caption:
-      length: The story description must be a maximum of 150 characters.
+      length: Story description must be a maximum of 150 characters.
     file:
-      not-null: The image for the story is mandatory.
-      validate-filesize: The image for the story must be a maximum of 5MB.
-      validate-mimetype: Image format not supported.
+      not-null: Story image is required.
+      validate-filesize: Story image must be a maximum of 5MB.
+      validate-mimetype: Unsupported image format.
   update-password-request:
     password-matcher:
-      message: The passwords don't match.
+      message: Passwords do not match.
     current-password:
       not-blank: Enter your current password.
-      length: Your current password must be between 6 and 20 characters long.
+      length: Current password must be between 6 and 20 characters.
       pattern:
-        capital-letter: Your current password must contain at least one uppercase letter.
-        special-character: Your current password must contain at least one special character.
-        two-numbers: Your current password must contain at least two numbers.
+        capital-letter: Must contain at least one uppercase letter.
+        special-character: Must contain at least one special character.
+        two-numbers: Must contain at least two numbers.
     new-password:
       not-blank: Enter your new password.
-      length: Your new password must be between 6 and 20 characters long.
+      length: New password must be between 6 and 20 characters.
       pattern:
-        capital-letter: Your new password must contain at least one uppercase letter.
-        special-character: Your new password must contain at least one special character.
-        two-numbers: Your new password must contain at least two numbers.
-    confirm-password:
-      not-blank: Confirm your password.
-      length: Your password must be between 6 and 20 characters long.
-      pattern:
-        capital-letter: Your password must contain at least one uppercase letter.
-        special-character: Your password must contain at least one special character.
-        two-numbers: Your password must contain at least two numbers.
+        capital-letter: Must contain at least one uppercase letter.
+        special-character: Must contain at least one special character.
+        two-numbers: Must contain at least two numbers.
+    confirm-password: *confirm-password-validation
   update-story-request:
     caption:
-      length: The story description must be a maximum of 150 characters.
+      length: Story description must be a maximum of 150 characters.
+
 global-exception-handler:
   method-not-allowed: This method is not supported for this endpoint.
   route-not-found: This route does not exist.
-  internal-server-error: An unexpected error occurred, please try again later.
+  internal-server-error: An unexpected error occurred. Please try again later.
   unprocessable-entity: Validation error.
   bad-credentials: Incorrect email or password.
-  authorization-denied-exception: You do not have permission to perform this action.
+  authorization-denied-exception: *forbidden-action
+
 util:
   uuid-converter:
     invalid-id: Invalid ID.

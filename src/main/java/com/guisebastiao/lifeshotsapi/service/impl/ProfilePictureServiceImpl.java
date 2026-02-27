@@ -7,6 +7,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.ProfilePictureResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.ProfilePicture;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ProfilePictureMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfilePictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
@@ -20,11 +22,8 @@ import io.minio.RemoveObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.io.InputStream;
 
 @Service
@@ -58,10 +57,10 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.upload-profile-picture.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.upload-profile-picture.not-found")));
 
         if (profile.getProfilePicture() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.profile-picture-service.methods.upload-profile-picture.conflict"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.profile-picture-service.methods.upload-profile-picture.conflict"));
         }
 
         MultipartFile file = dto.file();
@@ -71,8 +70,6 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         String mimeType = file.getContentType();
 
         ProfilePicture profilePicture = new ProfilePicture();
-
-        System.out.println(profile.getFullName());
 
         profilePicture.setFileKey(fileKey);
         profilePicture.setFileName(fileName);
@@ -91,7 +88,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.upload-profile-picture.bad-request"), error);
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.upload-profile-picture.bad-request"));
         }
 
         return DefaultResponse.success(profilePictureMapper.toDTO(profilePictureSaved));
@@ -101,7 +98,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
     @Transactional(readOnly = true)
     public DefaultResponse<ProfilePictureResponse> findProfilePictureById(String profileId) {
         ProfilePicture profilePicture = profilePictureRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.find-profile-picture-by-id.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.find-profile-picture-by-id.not-found")));
 
         return DefaultResponse.success(profilePictureMapper.toDTO(profilePicture));
     }
@@ -112,10 +109,10 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.profile-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.profile-not-found")));
 
         if (profile.getProfilePicture() == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.picture-not-found"));
+            throw new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.picture-not-found"));
         }
 
         try {
@@ -126,7 +123,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.delete-profile-picture.bad-request"), error);
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.delete-profile-picture.bad-request"));
         }
 
         profile.setProfilePicture(null);

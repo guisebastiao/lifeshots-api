@@ -5,7 +5,9 @@ import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.CommentRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.CommentResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.CommentMapper;
 import com.guisebastiao.lifeshotsapi.repository.CommentRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
@@ -60,7 +62,7 @@ public class CommentServiceImpl implements CommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.create-comment.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.create-comment.not-found")));
 
         Comment comment = commentMapper.toEntity(dto);
         comment.setProfile(profile);
@@ -91,7 +93,7 @@ public class CommentServiceImpl implements CommentService {
     @Transactional(readOnly = true)
     public DefaultResponse<List<CommentResponse>> findAllComments(String postId, PaginationParam pagination) {
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-all-comments.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-all-comments.not-found")));
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Order.desc("likeCount"), Sort.Order.desc("createdAt")));
 
@@ -145,17 +147,17 @@ public class CommentServiceImpl implements CommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.post-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.post-not-found")));
 
         Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.comment-not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.remove-comment-in-post.comment-not-found")));
 
         if (!post.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.comment-service.methods.remove-comment-in-post.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.comment-service.methods.remove-comment-in-post.forbidden"));
         }
 
         if (comment.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.comment-service.methods.remove-comment-in-post.bad-request"));
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.comment-service.methods.remove-comment-in-post.bad-request"));
         }
 
         comment.setRemoved(true);
@@ -168,10 +170,10 @@ public class CommentServiceImpl implements CommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Comment comment = commentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(commentId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.not-found")));
 
         if (!profile.getId().equals(comment.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.comment-service.methods.find-comment-and-belongs-to-the-profile.forbidden"));
         }
 
         return comment;

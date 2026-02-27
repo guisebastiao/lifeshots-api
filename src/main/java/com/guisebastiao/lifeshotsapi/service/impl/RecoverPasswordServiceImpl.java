@@ -6,6 +6,8 @@ import com.guisebastiao.lifeshotsapi.dto.request.ForgotPasswordRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RecoverPasswordRequest;
 import com.guisebastiao.lifeshotsapi.entity.RecoverPassword;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.repository.RecoverPasswordRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.service.MailSenderService;
@@ -15,10 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -82,10 +82,10 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
     @Transactional
     public DefaultResponse<Void> recoverPassword(RecoverPasswordTokenParam param, RecoverPasswordRequest dto) {
         RecoverPassword recoverPassword = recoverPasswordRepository.findRecoverPasswordByToken(param.token())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.recover-password-service.methods.recover-password.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.recover-password-service.methods.recover-password.not-found")));
 
         if (!recoverPassword.isActive() || recoverPassword.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.recover-password-service.methods.recover-password.bad-request"));
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.recover-password-service.methods.recover-password.bad-request"));
         }
 
         User user = recoverPassword.getUser();

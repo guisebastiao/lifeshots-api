@@ -5,8 +5,10 @@ import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.enums.FollowType;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.FollowMapper;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
@@ -21,9 +23,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -59,14 +59,14 @@ public class FollowServiceImpl implements FollowService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile following = profileRepository.findById(uuidConverter.toUUID(profileId))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.follow.not-found)")));
+                    .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.follow.not-found)")));
 
         if (user.getProfile().getId().equals(following.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.conflict"));
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.conflict"));
         }
 
         if (followRepository.existsByFollowerAndFollowing(user.getProfile(), following)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.bad-request"));
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.bad-request"));
         }
 
         FollowId followId = new FollowId();
@@ -129,7 +129,7 @@ public class FollowServiceImpl implements FollowService {
     @Transactional(readOnly = true)
     public DefaultResponse<List<FollowResponse>> findAllFollowers(String profileId, FollowParam param, PaginationParam pagination) {
         Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.find-all-followers.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.find-all-followers.not-found")));
 
         FollowType type = typeEnum(param.type());
 
@@ -157,14 +157,14 @@ public class FollowServiceImpl implements FollowService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.unfollow.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.unfollow.not-found")));
 
         if (user.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, getMessage("services.follow-service.methods.unfollow.conflict"));
+            throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.unfollow.conflict"));
         }
 
         Follow follow = followRepository.findByFollowingAndFollower(profile, user.getProfile())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.follow-service.methods.unfollow.bad-request")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.follow-service.methods.unfollow.bad-request")));
 
         followRepository.delete(follow);
 

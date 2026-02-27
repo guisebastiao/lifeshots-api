@@ -6,15 +6,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class BusinessValidationException extends RuntimeException {
-
-    private final String field;
+public class BusinessException extends RuntimeException {
     private final BusinessHttpStatus status;
 
-    public BusinessValidationException(BusinessHttpStatus status, String field, String message) {
+    public BusinessException(BusinessHttpStatus status, String message) {
         super(message);
-        this.field = field;
         this.status = status;
     }
-
 }

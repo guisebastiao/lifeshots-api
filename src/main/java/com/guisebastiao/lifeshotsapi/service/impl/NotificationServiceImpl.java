@@ -8,6 +8,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UnreadResponse;
 import com.guisebastiao.lifeshotsapi.entity.Notification;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
@@ -21,7 +23,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -82,10 +83,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.find-notification-by-id.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.find-notification-by-id.not-found")));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.find-notification-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.find-notification-by-id.forbidden"));
         }
 
         return DefaultResponse.success(notificationMapper.toDTO(notification));
@@ -97,10 +98,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.read-notification-by-id.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.read-notification-by-id.not-found")));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.read-notification-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.read-notification-by-id.forbidden"));
         }
 
         notification.setRead(true);
@@ -123,10 +124,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.delete-notification-by-id.not-found")));
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.delete-notification-by-id.not-found")));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.notification-service.methods.delete-notification-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.delete-notification-by-id.forbidden"));
         }
 
         notification.setDeleted(true);

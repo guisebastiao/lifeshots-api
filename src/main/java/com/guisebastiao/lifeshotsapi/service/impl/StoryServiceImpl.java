@@ -8,6 +8,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.StoryResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.Story;
 import com.guisebastiao.lifeshotsapi.entity.StoryPicture;
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryPictureRepository;
@@ -21,15 +23,12 @@ import io.minio.PutObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -65,7 +64,7 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         if (storyRepository.countStoriesByProfile(profile) > 15) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.limit-bad-request"));
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.limit-bad-request"));
         }
 
         Instant expiresAt = LocalDateTime.now().plusDays(1).toInstant(ZoneOffset.UTC);
@@ -90,7 +89,7 @@ public class StoryServiceImpl implements StoryService {
                             .build()
             );
         } catch (Exception error) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.file-bad-request"), error);
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.file-bad-request"));
         }
 
         StoryPicture storyPicture = new StoryPicture();
@@ -112,12 +111,12 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-by-id.not-found")));
+                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-by-id.not-found")));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(story.getProfile(), profile);
 
         if (story.getProfile().isPrivate() && !mutualFollow && !profile.getId().equals(story.getProfile().getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.story-service.methods.find-story-by-id.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.story-service.methods.find-story-by-id.forbidden"));
         }
 
         return DefaultResponse.success(storyMapper.toDTO(story));
@@ -162,10 +161,10 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile().getUser().getProfile();
 
         Story story = storyRepository.findById(uuidConverter.toUUID(storyId)).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.not-found")));
+                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.not-found")));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.forbidden"));
+            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.forbidden"));
         }
 
         return story;
