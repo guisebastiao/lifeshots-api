@@ -52,7 +52,9 @@ common:
         min: A quantidade mínima de itens é 1.
         max: A quantidade máxima de itens é 50.
     file: &file-validation
-      validate-filesize: A imagem deve ter no máximo 5MB.
+      not-null: O arquivo de imagem é obrigatório.
+      validate-max-files: Número máximo de arquivos excedido.
+      validate-filesize: O tamanho do arquivo excede o limite permitido.
       validate-mimetype: Formato de imagem não suportado.
 
 security:
@@ -83,6 +85,8 @@ services:
         bad-request: *bad-request-wrong-password
   auth-service:
     methods:
+      login:
+        user-not-found: Verifique se o e-mail foi digitado corretamente.
       register:
         conflict-email: Esta conta já está cadastrada.
         conflict-handle: Nome de usuário já está em uso.
@@ -230,7 +234,7 @@ messages:
     message: "{0} começou a seguir você."
   like-post:
     title: Nova curtida
-    message: "{0} curtiu sua publicação."
+    message: "{0}  "
   like-comment:
     title: Comentário curtido
     message: "{0} curtiu seu comentário."

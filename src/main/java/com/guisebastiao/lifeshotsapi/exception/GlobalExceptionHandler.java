@@ -8,6 +8,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -41,13 +42,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(BusinessHttpStatus.VALIDATION_ERROR.getHttpStatus()).body(response);
     }
 
-    // UsernameNotFoundException - criar exception, de CustomUserDetailsService
-
     @ExceptionHandler(BusinessValidationException.class)
     public ResponseEntity<DefaultResponse<Void>> handleBusinessValidationException(BusinessValidationException e) {
         List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse(e.getField(), e.getMessage()));
         DefaultResponse<Void> response = DefaultResponse.error(e.getStatus().getCode(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
         return ResponseEntity.status(e.getStatus().getHttpStatus()).body(response);
+    }
+
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<DefaultResponse<Void>> handleBusinessValidationException(UsernameNotFoundException e) {
+        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("email", e.getMessage()));
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.USER_NOT_FOUND.getCode(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
+        return ResponseEntity.status(BusinessHttpStatus.USER_NOT_FOUND.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

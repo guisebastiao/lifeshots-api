@@ -45,9 +45,9 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
-    private final UserMapper userMapper;
     private final MessageSource messageSource;
     private final Environment environment;
+    private final UserMapper userMapper;
 
     @Value("${cookie.access-name}")
     private String cookieAccessName;
@@ -71,8 +71,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public DefaultResponse<AuthResponse> login(HttpServletResponse response, LoginRequest dto) {
-        UsernamePasswordAuthenticationToken userAndPass = new UsernamePasswordAuthenticationToken(dto.email(), dto.password());
-        Authentication authentication = authenticationManager.authenticate(userAndPass);
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.email(), dto.password()));
 
         User user = (User) authentication.getPrincipal();
 
@@ -125,10 +124,12 @@ public class AuthServiceImpl implements AuthService {
         String refreshToken = getCookieByRequest(request, cookieRefreshName)
                 .orElseThrow(() -> new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.auth-service.methods.refresh.bad-request")));
 
-        RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken, request);
+        System.out.println(refreshToken);
+
+        RefreshToken refreshEntity = refreshTokenService.validateRefreshToken(refreshToken, response);
         User user = refreshEntity.getUser();
 
-        refreshTokenRepository.delete(refreshEntity);
+        refreshTokenRepository.deleteByToken(refreshEntity.getRefreshToken());
 
         String newAccessToken = accessTokenService.createAccessToken(user);
         String newRefreshToken = refreshTokenService.createRefreshToken(user);

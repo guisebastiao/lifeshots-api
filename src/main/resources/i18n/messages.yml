@@ -52,7 +52,9 @@ common:
         min: Minimum item quantity is 1.
         max: Maximum item quantity is 50.
     file: &file-validation
-      validate-filesize: The image must be a maximum of 5MB.
+      not-null: The image file is required.
+      validate-max-files: Maximum number of files exceeded.
+      validate-filesize: File size exceeds the allowed limit.
       validate-mimetype: Unsupported image format.
 
 security:
@@ -83,6 +85,8 @@ services:
         bad-request: *bad-request-wrong-password
   auth-service:
     methods:
+      login:
+        user-not-found: Please verify that the email address is correct and try again.
       register:
         conflict-email: This email is already registered.
         conflict-handle: Username is already in use.

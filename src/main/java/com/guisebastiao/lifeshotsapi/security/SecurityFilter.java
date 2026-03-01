@@ -48,7 +48,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             return;
         }
 
-        refreshTokenService.validateRefreshToken(refreshToken.get(), request);
+        refreshTokenService.validateRefreshToken(refreshToken.get(), response);
         String userId = accessTokenService.validateAccessToken(accessToken.get(), request);
 
         if (userId == null) {

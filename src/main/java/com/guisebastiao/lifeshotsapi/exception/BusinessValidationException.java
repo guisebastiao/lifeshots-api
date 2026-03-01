@@ -16,5 +16,4 @@ public class BusinessValidationException extends RuntimeException {
         this.field = field;
         this.status = status;
     }
-
 }

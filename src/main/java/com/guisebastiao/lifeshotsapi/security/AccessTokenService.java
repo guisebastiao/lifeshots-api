@@ -37,7 +37,7 @@ public class AccessTokenService {
     public String createAccessToken(User user) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(accessTokenSecret);
-            Date expires = Date.from(Instant.now().plus(accessTokenDuration, ChronoUnit.SECONDS));
+            Date expires = Date.from(Instant.now().plusSeconds(accessTokenDuration));
 
             return JWT.create()
                     .withSubject(user.getEmail())
