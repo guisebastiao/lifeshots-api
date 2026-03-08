@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.security.services.RateLimiterService;
-import io.github.bucket4j.Bucket;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,15 +29,13 @@ public class RateLimitingFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest req = (HttpServletRequest) request;
-        HttpServletResponse res = (HttpServletResponse) response;
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        Bucket bucket = rateLimiterService.resolveBucket(req);
-
-        if (bucket.tryConsume(1)) {
+        if (rateLimiterService.allowRequest(httpRequest)) {
             chain.doFilter(request, response);
         } else {
-            rejectRequest(res);
+            rejectRequest(httpResponse);
         }
     }
 
@@ -46,7 +43,6 @@ public class RateLimitingFilter implements Filter {
         DefaultResponse<Void> body = DefaultResponse.error(BusinessHttpStatus.TOO_MANY_REQUESTS.getCode(), getMessage("security.too-many-requests.message"));
         response.setStatus(BusinessHttpStatus.TOO_MANY_REQUESTS.getHttpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setHeader("Retry-After", "60");
         response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 
