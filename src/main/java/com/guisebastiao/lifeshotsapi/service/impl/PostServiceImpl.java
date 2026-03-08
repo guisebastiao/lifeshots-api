@@ -14,7 +14,7 @@ import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.PostService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;

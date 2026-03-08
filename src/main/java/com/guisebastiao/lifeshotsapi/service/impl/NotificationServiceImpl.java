@@ -12,7 +12,7 @@ import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.NotificationService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,6 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

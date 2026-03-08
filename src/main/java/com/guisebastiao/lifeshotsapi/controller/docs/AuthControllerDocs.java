@@ -67,7 +67,7 @@ public interface AuthControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletResponse httpResponse, LoginRequest dto);
+    ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, LoginRequest dto);
 
 
     @Operation(
@@ -132,6 +132,41 @@ public interface AuthControllerDocs {
     })
     ResponseEntity<DefaultResponse<AuthResponse>> register(RegisterRequest dto);
 
+
+    @Operation(
+            summary = "Check authenticated session",
+            description = "Verifies whether the current request has a valid authenticated session. " +
+                    "If the access token cookie is valid, the authenticated user's basic information is returned. " +
+                    "If the session is invalid or expired, a 401 Unauthorized response is returned."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Session is valid and the user is authenticated.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = AuthSuccess.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "User is not authenticated or the session is invalid/expired.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "An unexpected internal server error occurred.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    ResponseEntity<DefaultResponse<AuthResponse>> session(Authentication authentication);
+
     @Operation(
             summary = "Refresh authentication token",
             description = "Generates a new access token using a valid refresh token stored in an HTTP-only cookie. If the refresh token is valid, a new access token and updated cookies are issued."
@@ -186,5 +221,5 @@ public interface AuthControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<Void>> logout(HttpServletResponse httpResponse);
+    ResponseEntity<DefaultResponse<Void>> logout(HttpServletRequest httpRequest, HttpServletResponse httpResponse);
 }

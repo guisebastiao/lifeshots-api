@@ -1,7 +1,10 @@
-package com.guisebastiao.lifeshotsapi.security;
+package com.guisebastiao.lifeshotsapi.security.handler;
 
+import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
+import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.services.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -25,17 +29,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final RefreshTokenService refreshTokenService;
     private final Environment environment;
 
-    @Value("${jwt.access-token-duration}")
-    private int accessTokenDuration;
+    @Value("${cookie.access-token.name}")
+    private String cookieAccessTokenName;
 
-    @Value("${jwt.refresh-token-duration}")
-    private int refreshTokenDuration;
+    @Value("${cookie.refresh-token.name}")
+    private String cookieRefreshTokenName;
 
-    @Value("${cookie.access-name}")
-    private String cookieAccessName;
-
-    @Value("${cookie.refresh-name}")
-    private String cookieRefreshName;
+    @Value("${cookie.device-id.name}")
+    private String cookieDeviceIdName;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -62,15 +63,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             User user = userRepository.findByEmail(email).orElse(null);
 
             if (user == null) {
-                redirectWithError(response, "user_not_registered", email, name);
+                redirectWithError(response, email, name);
                 return;
             }
 
             String accessToken = accessTokenService.createAccessToken(user);
-            String refreshToken = refreshTokenService.createRefreshToken(user);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);
 
-            generateCookie(response, cookieAccessName, accessToken);
-            generateCookie(response, cookieRefreshName, refreshToken);
+            loginAndCreateAllCookies(response, accessToken, refreshToken.getRefreshToken().toString(), refreshToken.getDevice().getId());
 
             response.sendRedirect(frontendUrl + "/oauth/success");
         } catch (Exception ex) {
@@ -90,11 +90,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.sendRedirect(redirectUrl);
     }
 
-    private void redirectWithError(HttpServletResponse response, String errorCode, String email, String name) throws IOException {
+    private void redirectWithError(HttpServletResponse response, String email, String name) throws IOException {
         String redirectUrl = UriComponentsBuilder
                 .fromUriString(frontendUrl)
                 .path("/oauth/error")
-                .queryParam("reason", errorCode)
+                .queryParam("reason", "user_not_registered")
                 .queryParam("email", email)
                 .queryParam("name", name)
                 .build()
@@ -104,21 +104,19 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.sendRedirect(redirectUrl);
     }
 
+    private void loginAndCreateAllCookies(HttpServletResponse response, String accessToken, String refreshToken, UUID deviceId) {
+        generateCookie(response, cookieAccessTokenName, accessToken);
+        generateCookie(response, cookieRefreshTokenName, refreshToken);
+        generateCookie(response, cookieDeviceIdName, deviceId.toString());
+    }
+
     private void generateCookie(HttpServletResponse response, String cookieName, String value) {
         boolean secure = isProduction();
-
-        ResponseCookie cookie = ResponseCookie.from(cookieName, value)
-                .httpOnly(true)
-                .secure(secure)
-                .path("/")
-                .sameSite("Lax")
-                .build();
-
+        ResponseCookie cookie = ResponseCookie.from(cookieName, value).httpOnly(true).secure(secure).path("/").sameSite("Lax").build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
     private boolean isProduction() {
-        return Arrays.asList(environment.getActiveProfiles())
-                .contains("prod");
+        return Arrays.asList(environment.getActiveProfiles()).contains("prod");
     }
 }

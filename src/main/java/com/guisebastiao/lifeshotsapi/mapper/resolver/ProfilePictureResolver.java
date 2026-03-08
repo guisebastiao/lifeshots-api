@@ -23,9 +23,6 @@ public class ProfilePictureResolver {
 
     @Named("getProfilePictureUrl")
     public String getProfilePictureUrl(ProfilePicture profilePicture) {
-
-        System.out.println(profilePicture.getFileName() + " - " +  profilePicture.getFileKey());
-
         try {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()

@@ -11,7 +11,7 @@ import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;

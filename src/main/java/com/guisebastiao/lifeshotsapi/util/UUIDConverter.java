@@ -1,10 +1,10 @@
 package com.guisebastiao.lifeshotsapi.util;
 
+import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -21,7 +21,7 @@ public class UUIDConverter {
         try {
             return UUID.fromString(id);
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, getMessage());
+            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage());
         }
     }
 

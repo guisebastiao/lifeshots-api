@@ -28,8 +28,8 @@ public class AuthController implements AuthControllerDocs {
 
     @Override
     @PostMapping("/login")
-    public ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletResponse httpResponse, @RequestBody @Valid LoginRequest dto) {
-        DefaultResponse<AuthResponse> response = authService.login(httpResponse, dto);
+    public ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody @Valid LoginRequest dto) {
+        DefaultResponse<AuthResponse> response = authService.login(httpRequest, httpResponse,  dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -47,6 +47,13 @@ public class AuthController implements AuthControllerDocs {
     }
 
     @Override
+    @GetMapping("/session")
+    public ResponseEntity<DefaultResponse<AuthResponse>> session(Authentication authentication) {
+        DefaultResponse<AuthResponse> response = authService.session(authentication);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Override
     @PostMapping("/refresh")
     public ResponseEntity<DefaultResponse<Void>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         DefaultResponse<Void> response = authService.refresh(httpRequest, httpResponse);
@@ -55,8 +62,8 @@ public class AuthController implements AuthControllerDocs {
 
     @Override
     @PostMapping("/logout")
-    public ResponseEntity<DefaultResponse<Void>> logout(HttpServletResponse httpResponse) {
-        DefaultResponse<Void> response = authService.logout(httpResponse);
+    public ResponseEntity<DefaultResponse<Void>> logout(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        DefaultResponse<Void> response = authService.logout(httpRequest, httpResponse);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

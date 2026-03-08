@@ -1,4 +1,4 @@
-package com.guisebastiao.lifeshotsapi.security;
+package com.guisebastiao.lifeshotsapi.security.handler;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

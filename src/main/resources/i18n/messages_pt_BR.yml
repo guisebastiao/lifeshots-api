@@ -61,8 +61,12 @@ security:
   access-token-service:
     create-access-token: Erro ao criar o token de acesso.
   refresh-token-service:
+    create-refresh-token:
+      not-found-device-id: Dispositivo ausente.
     validate-refresh-token:
-      not-found: Refresh token não encontrado.
+      not-found-refresh-token: Refresh token não encontrado.
+      not-found-device-id: Dispositivo ausente.
+      invalid-device: Dispositivo inválido.
       unauthorized: Sessão expirada, faça o login novamente.
   authentication-user-provider:
     authentication-not-found: Usuário autenticado não encontrado.
@@ -73,6 +77,8 @@ security:
     message: Você não tem permissão para acessar este recurso.
   custom-authentication-entry-point:
     message: Você precisa estar autenticado para acessar este recurso.
+  too-many-requests:
+    message: Você fez muitas requisições em um curto período. Tente novamente em alguns instantes.
 
 services:
   account-service:
@@ -91,10 +97,10 @@ services:
         conflict-email: Esta conta já está cadastrada.
         conflict-handle: Nome de usuário já está em uso.
         role-not-found: *role-not-found
-      authenticated:
-        unauthorized: Usuário não autenticado.
+      session:
+        unauthenticated: Usuário não autenticado.
       refresh:
-        bad-request: Cookie não encontrado.
+        not-found-cookie: Cookie não encontrado.
   comment-service:
     methods:
       create-comment:
@@ -189,6 +195,10 @@ services:
         profile-not-found: *profile-not-found
         picture-not-found: *profile-picture-not-found
         bad-request: *bad-request-file-read
+  push-subscription:
+    methods:
+      subscribe:
+        not-found-device-id: Dispositivo ausente.
   profile-service:
     methods:
       find-profile-by-id:
@@ -314,10 +324,6 @@ validation:
   push-subscription-request:
     endpoint:
       not-blank: Informe o endpoint.
-    device-id:
-      not-blank: Informe o deviceId.
-    user-agent:
-      not-blank: Informe o userAgent.
     keys:
       p256dh:
         not-blank: Informe o p256dh.
@@ -384,6 +390,8 @@ global-exception-handler:
   internal-server-error: Ocorreu um erro inesperado, tente novamente mais tarde.
   unprocessable-entity: Erro de validação.
   bad-credentials: E-mail ou senha incorretos.
+  access-denied: Você não tem permissão para acessar este recurso.
+  invalid-json: O corpo da requisição contém JSON inválido ou mal formatado.
   authorization-denied-exception: *forbidden-action
 
 util:

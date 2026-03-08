@@ -1,6 +1,5 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
-import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;

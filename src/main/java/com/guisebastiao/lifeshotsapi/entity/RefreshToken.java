@@ -20,12 +20,15 @@ public class RefreshToken extends Auditable {
     @Id
     @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "refresh_token", nullable = false, unique = true, updatable = false)
     private UUID refreshToken;
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    @JoinColumn(name = "device_id", nullable = false, unique = true)
+    private Device device;
 }

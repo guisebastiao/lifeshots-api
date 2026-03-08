@@ -116,28 +116,42 @@ CREATE TABLE notification_settings
 );
 
 -- -----------------------------------------------------------------------------
+-- DEVICES
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE devices
+(
+    id               UUID                     NOT NULL DEFAULT gen_random_uuid(),
+    user_id          UUID                     NOT NULL,
+    last_accessed_at TIMESTAMP WITH TIME ZONE,
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT pk_devices PRIMARY KEY (id),
+    CONSTRAINT fk_devices_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_devices_user_id ON devices (user_id);
+
+-- -----------------------------------------------------------------------------
 -- PUSH_SUBSCRIPTIONS
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE push_subscriptions
 (
-    id           UUID                     NOT NULL DEFAULT gen_random_uuid(),
-    user_id      UUID                     NOT NULL,
-    endpoint     VARCHAR(1000)            NOT NULL,
-    p256dh       VARCHAR(500)             NOT NULL,
-    auth         VARCHAR(500)             NOT NULL,
-    user_agent   VARCHAR(500)             NOT NULL,
-    device_id    VARCHAR(500)             NOT NULL,
-    active       BOOLEAN                  NOT NULL DEFAULT TRUE,
-    last_used_at TIMESTAMP WITH TIME ZONE,
-    created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    id         UUID                     NOT NULL DEFAULT gen_random_uuid(),
+    device_id  UUID                     NOT NULL,
+    endpoint   VARCHAR(1000)            NOT NULL,
+    p256dh     VARCHAR(500)             NOT NULL,
+    auth       VARCHAR(500)             NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_push_subscriptions PRIMARY KEY (id),
-    CONSTRAINT fk_push_subscriptions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT uq_push_subscriptions_device UNIQUE (device_id),
+    CONSTRAINT fk_push_subscriptions_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_push_subscriptions_user_id ON push_subscriptions (user_id);
 CREATE INDEX idx_push_subscriptions_device_id ON push_subscriptions (device_id);
 
 -- -----------------------------------------------------------------------------
@@ -168,16 +182,20 @@ CREATE INDEX idx_recover_passwords_active ON recover_passwords (is_active) WHERE
 
 CREATE TABLE refresh_tokens
 (
-    refresh_token UUID                     NOT NULL DEFAULT gen_random_uuid(),
-    user_id       UUID                     NOT NULL,
+    id            UUID                     NOT NULL DEFAULT gen_random_uuid(),
+    refresh_token UUID                     NOT NULL,
+    device_id     UUID                     NOT NULL,
     expires_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT pk_refresh_tokens PRIMARY KEY (refresh_token),
-    CONSTRAINT uq_refresh_tokens_user UNIQUE (user_id),
-    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+    CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
+    CONSTRAINT uq_refresh_tokens_token UNIQUE (refresh_token),
+    CONSTRAINT uq_refresh_tokens_device UNIQUE (device_id),
+    CONSTRAINT fk_refresh_tokens_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_refresh_tokens_token ON refresh_tokens (refresh_token);
 
 -- -----------------------------------------------------------------------------
 -- FOLLOWS

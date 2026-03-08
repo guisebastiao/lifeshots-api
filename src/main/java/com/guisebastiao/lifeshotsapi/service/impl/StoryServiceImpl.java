@@ -14,7 +14,7 @@ import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryPictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.StoryService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;

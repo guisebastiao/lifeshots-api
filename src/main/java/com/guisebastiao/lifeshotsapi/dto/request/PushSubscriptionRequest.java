@@ -9,13 +9,7 @@ public record PushSubscriptionRequest(
         String endpoint,
 
         @Valid
-        Keys keys,
-
-        @NotBlank(message = "{validation.push-subscription-request.device-id.not-blank}")
-        String deviceId,
-
-        @NotBlank(message = "{validation.push-subscription-request.user-agent.not-blank}")
-        String userAgent
+        Keys keys
 ) {
     public record Keys(
 

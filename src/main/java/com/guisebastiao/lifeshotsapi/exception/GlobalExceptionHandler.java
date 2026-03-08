@@ -6,6 +6,8 @@ import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -53,13 +55,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<DefaultResponse<Void>> handleBusinessValidationException(UsernameNotFoundException e) {
         List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("email", e.getMessage()));
-        DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.USER_NOT_FOUND.getCode(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
-        return ResponseEntity.status(BusinessHttpStatus.USER_NOT_FOUND.getHttpStatus()).body(response);
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.BAD_CREDENTIALS.getCode(), getMessage("global-exception-handler.unprocessable-entity"), fieldErrors);
+        return ResponseEntity.status(BusinessHttpStatus.BAD_CREDENTIALS.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<DefaultResponse<Void>> handleBadCredentialsException(BadCredentialsException e) {
-        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("errorCredentials", e.getMessage()));
+        List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("error", e.getMessage()));
         DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.BAD_CREDENTIALS.getCode(), getMessage("global-exception-handler.bad-credentials"), fieldErrors);
         return ResponseEntity.status(BusinessHttpStatus.BAD_CREDENTIALS.getHttpStatus()).body(response);
     }
@@ -85,6 +87,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<DefaultResponse<Void>> handleNotFound(NoHandlerFoundException ignored) {
         DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.ROUTE_NOT_FOUND.getCode(), getMessage("global-exception-handler.route-not-found"));
         return ResponseEntity.status(BusinessHttpStatus.ROUTE_NOT_FOUND.getHttpStatus()).body(response);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<DefaultResponse<Void>> handleAccessDenied() {
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.ACCESS_DENIED.getCode(), getMessage("global-exception-handler.access-denied"));
+        return ResponseEntity.status(BusinessHttpStatus.APPLICATION_ACCESS_DENIED.getHttpStatus()).body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<DefaultResponse<Void>> handleInvalidJson() {
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessHttpStatus.BAD_REQUEST.getCode(),getMessage("global-exception-handler.invalid-json"));
+        return ResponseEntity.status(BusinessHttpStatus.BAD_REQUEST.getHttpStatus()).body(response);
     }
 
     @ExceptionHandler(RuntimeException.class)

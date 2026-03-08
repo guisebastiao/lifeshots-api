@@ -3,7 +3,7 @@ package com.guisebastiao.lifeshotsapi.mapper.resolver;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import org.mapstruct.Named;
 import org.springframework.stereotype.Component;
 

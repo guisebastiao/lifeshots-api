@@ -14,7 +14,7 @@ import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FollowService;
 import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;

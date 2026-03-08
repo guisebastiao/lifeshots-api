@@ -1,4 +1,4 @@
-package com.guisebastiao.lifeshotsapi.security;
+package com.guisebastiao.lifeshotsapi.security.provider;
 
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
@@ -25,11 +25,8 @@ public class AuthenticatedUserProvider {
             throw new BusinessException(BusinessHttpStatus.TOKEN_INVALID, getMessage("security.authentication-user-provider.authentication-not-found"));
         }
 
-        Object principal = authentication.getPrincipal();
-
-
-        if (principal instanceof User user) {
-            return user;
+        if (authentication.getPrincipal() instanceof UserPrincipal principal) {
+            return principal.getUser();
         }
 
         throw new BusinessException(BusinessHttpStatus.TOKEN_INVALID, getMessage("security.authentication-user-provider.invalid-identifier"));

@@ -11,7 +11,7 @@ import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FeedStoryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

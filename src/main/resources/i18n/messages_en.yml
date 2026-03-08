@@ -61,8 +61,12 @@ security:
   access-token-service:
     create-access-token: Error creating access token.
   refresh-token-service:
+    create-refresh-token:
+      not-found-device-id: Missing device.
     validate-refresh-token:
-      not-found: Refresh token not found.
+      not-found-refresh-token: Refresh token not found.
+      not-found-device-id: Missing device.
+      invalid-device: Invalid device.
       unauthorized: Session expired. Please log in again.
   authentication-user-provider:
     authentication-not-found: Authenticated user not found.
@@ -73,6 +77,8 @@ security:
     message: You do not have permission to access this resource.
   custom-authentication-entry-point:
     message: You must be authenticated to access this resource.
+  too-many-requests:
+    message: You made too many requests in a short period of time. Please try again in a few moments.
 
 services:
   account-service:
@@ -91,9 +97,9 @@ services:
         conflict-email: This email is already registered.
         conflict-handle: Username is already in use.
         role-not-found: *role-not-found
-      authenticated:
-        unauthorized: User not authenticated.
-      refresh:
+      session:
+        unauthenticated: User not authenticated.
+      not-found-cookie:
         bad-request: Cookie not found.
   comment-service:
     methods:
@@ -189,6 +195,10 @@ services:
         profile-not-found: *profile-not-found
         picture-not-found: *profile-picture-not-found
         bad-request: *bad-request-file-read
+  push-subscription:
+    methods:
+      subscribe:
+        not-found-device-id: Missing device.
   profile-service:
     methods:
       find-profile-by-id:
@@ -314,10 +324,6 @@ validation:
   push-subscription-request:
     endpoint:
       not-blank: Provide the endpoint.
-    device-id:
-      not-blank: Provide the deviceId.
-    user-agent:
-      not-blank: Provide the userAgent.
     keys:
       p256dh:
         not-blank: Provide the p256dh.
@@ -384,6 +390,8 @@ global-exception-handler:
   internal-server-error: An unexpected error occurred. Please try again later.
   unprocessable-entity: Validation error.
   bad-credentials: Incorrect email or password.
+  access-denied: You do not have permission to access this resource.
+  invalid-json: The request body contains invalid or malformed JSON.
   authorization-denied-exception: *forbidden-action
 
 util:

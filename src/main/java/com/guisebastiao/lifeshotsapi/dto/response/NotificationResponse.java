@@ -11,5 +11,6 @@ public record NotificationResponse(
         String message,
         NotificationType type,
         boolean read,
-        Instant createdAt
+        Instant createdAt,
+        ProfileResponse sender
 ) { }

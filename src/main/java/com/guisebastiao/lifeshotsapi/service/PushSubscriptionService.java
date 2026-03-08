@@ -2,10 +2,8 @@ package com.guisebastiao.lifeshotsapi.service;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.PushSubscriptionRequest;
-
-import java.util.UUID;
+import jakarta.servlet.http.HttpServletRequest;
 
 public interface PushSubscriptionService {
-    DefaultResponse<Void> saveSubscription(PushSubscriptionRequest dto);
-    void deactivate(UUID subId);
+    DefaultResponse<Void> subscribe(HttpServletRequest request, PushSubscriptionRequest dto);
 }

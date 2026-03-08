@@ -6,7 +6,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.FollowRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.RecommendationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

@@ -12,7 +12,7 @@ import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ProfilePictureMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfilePictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.ProfilePictureService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;

@@ -7,7 +7,7 @@ import com.guisebastiao.lifeshotsapi.entity.NotificationSetting;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationSettingMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.NotificationSettingService;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;

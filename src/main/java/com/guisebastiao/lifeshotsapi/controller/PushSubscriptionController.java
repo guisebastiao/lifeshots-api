@@ -4,6 +4,7 @@ import com.guisebastiao.lifeshotsapi.controller.docs.PushSubscriptionControllerD
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.PushSubscriptionRequest;
 import com.guisebastiao.lifeshotsapi.service.PushSubscriptionService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +21,8 @@ public class PushSubscriptionController implements PushSubscriptionControllerDoc
 
     @Override
     @PostMapping("/subscribe")
-    public ResponseEntity<DefaultResponse<Void>> subscribe(@RequestBody PushSubscriptionRequest dto) {
-        DefaultResponse<Void> response = pushSubscriptionService.saveSubscription(dto);
+    public ResponseEntity<DefaultResponse<Void>> subscribe(HttpServletRequest httpRequest, @RequestBody PushSubscriptionRequest dto) {
+        DefaultResponse<Void> response = pushSubscriptionService.subscribe(httpRequest, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

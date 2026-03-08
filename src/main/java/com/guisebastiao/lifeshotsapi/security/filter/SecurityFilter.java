@@ -1,6 +1,8 @@
-package com.guisebastiao.lifeshotsapi.security;
+package com.guisebastiao.lifeshotsapi.security.filter;
 
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
+import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;
+import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -20,35 +23,30 @@ import java.util.Optional;
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
 
-    private final RefreshTokenService refreshTokenService;
     private final AccessTokenService accessTokenService;
     private final UserRepository userRepository;
     private final UUIDConverter uuidConverter;
+    private final Environment environment;
 
-    @Value("${cookie.access-name}")
-    private String cookieAccessName;
+    @Value("${cookie.access-token.name}")
+    private String cookieAccessTokenName;
 
-    @Value("${cookie.refresh-name}")
-    private String cookieRefreshName;
-
-    public SecurityFilter(RefreshTokenService refreshTokenService, AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter) {
-        this.refreshTokenService = refreshTokenService;
+    public SecurityFilter(AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter, Environment environment) {
         this.accessTokenService = accessTokenService;
         this.userRepository = userRepository;
         this.uuidConverter = uuidConverter;
+        this.environment = environment;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        Optional<String> accessToken = recoverToken(request, cookieAccessName);
-        Optional<String> refreshToken = recoverToken(request, cookieRefreshName);
+        Optional<String> accessToken = recoverToken(request, cookieAccessTokenName);
 
-        if (accessToken.isEmpty() || refreshToken.isEmpty()) {
+        if (accessToken.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        refreshTokenService.validateRefreshToken(refreshToken.get(), response);
         String userId = accessTokenService.validateAccessToken(accessToken.get(), request);
 
         if (userId == null) {
@@ -57,7 +55,8 @@ public class SecurityFilter extends OncePerRequestFilter {
         }
 
         userRepository.findById(uuidConverter.toUUID(userId)).ifPresent(user -> {
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+            UserPrincipal principal = new UserPrincipal(user);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
         });
 
@@ -71,5 +70,9 @@ public class SecurityFilter extends OncePerRequestFilter {
                 .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
+    }
+
+    private boolean isProduction() {
+        return Arrays.asList(environment.getActiveProfiles()).contains("prod");
     }
 }

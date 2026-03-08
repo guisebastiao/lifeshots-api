@@ -7,7 +7,7 @@ import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.FeedPostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

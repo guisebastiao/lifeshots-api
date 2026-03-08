@@ -10,7 +10,7 @@ import com.guisebastiao.lifeshotsapi.enums.NotificationType;
 import com.guisebastiao.lifeshotsapi.exception.BusinessException;
 import com.guisebastiao.lifeshotsapi.mapper.ReplyCommentMapper;
 import com.guisebastiao.lifeshotsapi.repository.*;
-import com.guisebastiao.lifeshotsapi.security.AuthenticatedUserProvider;
+import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.service.ReplyCommentService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;

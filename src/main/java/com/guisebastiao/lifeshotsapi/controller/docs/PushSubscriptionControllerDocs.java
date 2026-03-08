@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Push Subscription", description = "Push notification subscription management")
@@ -54,5 +55,5 @@ public interface PushSubscriptionControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<Void>> subscribe(PushSubscriptionRequest dto);
+    ResponseEntity<DefaultResponse<Void>> subscribe(HttpServletRequest httpRequest, PushSubscriptionRequest dto);
 }
