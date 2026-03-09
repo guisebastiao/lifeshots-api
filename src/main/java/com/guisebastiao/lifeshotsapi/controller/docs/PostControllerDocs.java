@@ -4,10 +4,7 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.PostRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.PostUpdateRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
-import com.guisebastiao.lifeshotsapi.dto.swagger.DataSuccess;
-import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
-import com.guisebastiao.lifeshotsapi.dto.swagger.InvalidRequestBodyResponse;
-import com.guisebastiao.lifeshotsapi.dto.swagger.SuccessResponse;
+import com.guisebastiao.lifeshotsapi.dto.swagger.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -112,7 +109,6 @@ public interface PostControllerDocs {
             )
     })
     ResponseEntity<DefaultResponse<PostResponse>> findPostById(String postId);
-
 
     @Operation(
             summary = "Update a post",

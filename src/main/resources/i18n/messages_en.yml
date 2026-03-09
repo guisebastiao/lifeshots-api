@@ -173,6 +173,9 @@ services:
       find-post-by-id:
         not-found: *post-not-found
         forbidden: *forbidden-private-profile
+      find-post-by-profile:
+        profile-not-found: *profile-not-found
+        forbidden: *forbidden-private-profile
       update-post:
         bad-request-max-pictures: A post cannot have more than ten images.
         bad-request-min-pictures: A post must contain at least one image.

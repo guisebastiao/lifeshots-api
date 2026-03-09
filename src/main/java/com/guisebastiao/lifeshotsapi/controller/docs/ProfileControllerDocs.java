@@ -4,6 +4,7 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.DataSuccess;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
@@ -24,6 +25,7 @@ public interface ProfileControllerDocs {
 
     class ProfileSuccess extends DataSuccess<ProfileResponse> {}
     class ProfileListSuccess extends PagingSuccess<List<ProfileResponse>> {}
+    class PostListSuccess extends PagingSuccess<List<PostResponse>> {}
 
     @Operation(
             summary = "Get authenticated user profile",
@@ -99,6 +101,54 @@ public interface ProfileControllerDocs {
 
     @Operation(
             summary = "Find profile by id",
+            description = "Returns a profile by its handle. Private profiles require mutual follow."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Profile found successfully.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProfileSuccess.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required. The user must be logged in to find profile.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "You are not allowed to view this profile.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Profile not found",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "An unexpected internal server error occurred.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    ResponseEntity<DefaultResponse<ProfileResponse>> findProfileByHandle(String handle);
+
+    @Operation(
+            summary = "Find profile by id",
             description = "Returns a profile by its ID. Private profiles require mutual follow."
     )
     @ApiResponses({
@@ -144,6 +194,54 @@ public interface ProfileControllerDocs {
             )
     })
     ResponseEntity<DefaultResponse<ProfileResponse>> findProfileById(String profileId);
+
+    @Operation(
+            summary = "Retrieve a post by profile",
+            description = "Returns a post by its profile. If the post belongs to a private profile, access is restricted to the owner or mutual followers."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Post retrieved successfully.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PostListSuccess.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required. The user must be logged in to find post.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden. You do not have permission to access this post.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "Invalid pagination parameters. Page number, size, or sorting values are invalid.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = InvalidRequestBodyResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "An unexpected internal server error occurred.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    ResponseEntity<DefaultResponse<List<PostResponse>>> findPosts(String profileId, PaginationParam pagination);
 
     @Operation(
             summary = "Update authenticated user profile",

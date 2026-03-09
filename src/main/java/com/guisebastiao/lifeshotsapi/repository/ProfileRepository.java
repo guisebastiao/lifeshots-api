@@ -8,10 +8,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ProfileRepository extends JpaRepository<Profile, UUID> {
+
+    @Query("SELECT p FROM Profile p WHERE LOWER(p.user.handle) = LOWER(TRIM((:handle)))")
+    Optional<Profile> findByHandle(@Param("handle") String handle);
 
     @Query("""
         SELECT CASE WHEN COUNT(f1) > 0 AND COUNT(f2) > 0 THEN true ELSE false END

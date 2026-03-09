@@ -4,12 +4,16 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
+import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
 import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
+import com.guisebastiao.lifeshotsapi.repository.PostRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
@@ -28,17 +32,21 @@ import java.util.List;
 public class ProfileServiceImpl implements ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final PostRepository postRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final ProfileMapper profileMapper;
     private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
+    private final PostMapper postMapper;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileMapper profileMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public ProfileServiceImpl(ProfileRepository profileRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileMapper profileMapper, MessageSource messageSource, UUIDConverter uuidConverter, PostMapper postMapper) {
         this.profileRepository = profileRepository;
+        this.postRepository = postRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
         this.profileMapper = profileMapper;
         this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
+        this.postMapper = postMapper;
     }
 
     @Override
@@ -71,6 +79,23 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
+    public DefaultResponse<ProfileResponse> findProfileByHandle(String handle) {
+        Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
+        Profile profile = profileRepository.findByHandle(handle)
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
+
+        boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
+
+        if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
+            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+        }
+
+        return DefaultResponse.success(profileMapper.toDTO(profile));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public DefaultResponse<ProfileResponse> findProfileById(String profileId) {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
@@ -84,6 +109,38 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         return DefaultResponse.success(profileMapper.toDTO(profile));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DefaultResponse<List<PostResponse>> findPosts(String profileId, PaginationParam pagination) {
+        Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
+
+        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
+                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-profile.not-found")));
+
+        boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
+
+        if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
+            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+        }
+
+        Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
+
+        Page<Post> resultPage = postRepository.findAllByProfile(profile, pageable);
+
+        DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
+                .totalItems(resultPage.getTotalElements())
+                .totalPages(resultPage.getTotalPages())
+                .currentPage(pagination.offset())
+                .itemsPerPage(pagination.limit())
+                .build();
+
+        List<PostResponse> data = resultPage.getContent().stream()
+                .map(postMapper::toDTO)
+                .toList();
+
+        return DefaultResponse.success(data, meta);
     }
 
     @Override

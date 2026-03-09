@@ -5,6 +5,7 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfileRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.SearchProfileRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import jakarta.validation.Valid;
@@ -39,9 +40,23 @@ public class ProfileController implements ProfileControllerDocs {
     }
 
     @Override
+    @GetMapping("/handle/{handle}")
+    public ResponseEntity<DefaultResponse<ProfileResponse>> findProfileByHandle(@PathVariable String handle) {
+        DefaultResponse<ProfileResponse> response = this.profileService.findProfileByHandle(handle);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Override
     @GetMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<ProfileResponse>> findProfileById(@PathVariable String profileId) {
         DefaultResponse<ProfileResponse> response = this.profileService.findProfileById(profileId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @Override
+    @GetMapping("/{profileId}/posts")
+    public ResponseEntity<DefaultResponse<List<PostResponse>>> findPosts(@PathVariable String profileId, PaginationParam pagination) {
+        DefaultResponse<List<PostResponse>> response = this.profileService.findPosts(profileId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
