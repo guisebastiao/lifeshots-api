@@ -2,9 +2,7 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.config.PushQueueConfig;
-import com.guisebastiao.lifeshotsapi.entity.Device;
 import com.guisebastiao.lifeshotsapi.entity.PushSubscription;
-import com.guisebastiao.lifeshotsapi.repository.DeviceRepository;
 import com.guisebastiao.lifeshotsapi.repository.PushSubscriptionRepository;
 import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import nl.martijndwars.webpush.Notification;
@@ -23,14 +21,12 @@ public class PushSenderServiceImpl implements PushSenderService {
 
     private final RabbitTemplate rabbitTemplate;
     private final PushSubscriptionRepository pushSubscriptionRepository;
-    private final DeviceRepository deviceRepository;
     private final ObjectMapper objectMapper;
     private final PushService pushService;
 
-    public PushSenderServiceImpl(RabbitTemplate rabbitTemplate, PushSubscriptionRepository pushSubscriptionRepository, DeviceRepository deviceRepository, ObjectMapper objectMapper, PushService pushService) {
+    public PushSenderServiceImpl(RabbitTemplate rabbitTemplate, PushSubscriptionRepository pushSubscriptionRepository, ObjectMapper objectMapper, PushService pushService) {
         this.rabbitTemplate = rabbitTemplate;
         this.pushSubscriptionRepository = pushSubscriptionRepository;
-        this.deviceRepository = deviceRepository;
         this.objectMapper = objectMapper;
         this.pushService = pushService;
     }
@@ -46,24 +42,32 @@ public class PushSenderServiceImpl implements PushSenderService {
     public void consumer(PushDTO dto) {
         List<PushSubscription> subs = pushSubscriptionRepository.findAllByDeviceUser(dto.receiverId());
 
+        if (subs.isEmpty()) return;
+
+        String payload;
+
+        try {
+            payload = objectMapper.writeValueAsString(new PushPayload(dto.title(), dto.message()));
+        } catch (Exception e) {
+            return;
+        }
+
         for (PushSubscription sub : subs) {
+
             try {
                 Subscription subscription = new Subscription(sub.getEndpoint(), new Subscription.Keys(sub.getP256dh(), sub.getAuth()));
-
-                String payload = objectMapper.writeValueAsString(new PushSenderServiceImpl.PushPayload(dto.title(), dto.message()));
 
                 Notification notification = new Notification(subscription, payload);
 
                 HttpResponse response = pushService.send(notification);
 
-                int statusCode = response.getStatusLine().getStatusCode();
+                int status = response.getStatusLine().getStatusCode();
 
-                if (statusCode == 404 || statusCode == 410) {
-                    Device device = sub.getDevice();
-                    device.setPushSubscription(null);
-                    deviceRepository.save(device);
+                if (status == 404 || status == 410) {
+                    sub.setActive(false);
+                    pushSubscriptionRepository.save(sub);
                 }
-            } catch (Exception ignore) {}
+            } catch (Exception ignored) {}
         }
     }
 

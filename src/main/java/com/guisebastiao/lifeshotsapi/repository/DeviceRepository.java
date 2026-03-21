@@ -15,8 +15,8 @@ import java.util.UUID;
 public interface DeviceRepository extends JpaRepository<Device, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT d FROM Device d WHERE d.id = :id")
-    Optional<Device> findByIdForUpdate(@Param("id") UUID id);
+    @Query("SELECT d FROM Device d WHERE d.id = :id AND NOT EXISTS (SELECT 1 FROM PushSubscription ps WHERE ps.auth = :auth)")
+    Optional<Device> findByIdForUpdate(@Param("id") UUID id, @Param("auth") String auth);
 
     @Modifying
     @Transactional

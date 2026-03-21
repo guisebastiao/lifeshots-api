@@ -47,16 +47,9 @@ public class AuthController implements AuthControllerDocs {
     }
 
     @Override
-    @GetMapping("/session")
-    public ResponseEntity<DefaultResponse<AuthResponse>> session(Authentication authentication) {
-        DefaultResponse<AuthResponse> response = authService.session(authentication);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @Override
     @PostMapping("/refresh")
-    public ResponseEntity<DefaultResponse<Void>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        DefaultResponse<Void> response = authService.refresh(httpRequest, httpResponse);
+    public ResponseEntity<DefaultResponse<AuthResponse>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        DefaultResponse<AuthResponse> response = authService.refresh(httpRequest, httpResponse);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

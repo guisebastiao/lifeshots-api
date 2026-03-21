@@ -4,6 +4,7 @@ import com.guisebastiao.lifeshotsapi.controller.docs.FollowControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
+import com.guisebastiao.lifeshotsapi.dto.request.FollowRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
 import com.guisebastiao.lifeshotsapi.service.FollowService;
 import jakarta.validation.Valid;
@@ -25,9 +26,9 @@ public class FollowController implements FollowControllerDocs {
 
     @Override
     @PostMapping("/{profileId}")
-    public ResponseEntity<DefaultResponse<Void>> follow(@PathVariable String profileId) {
-        DefaultResponse<Void> response = this.followService.follow(profileId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<DefaultResponse<Void>> follow(@PathVariable String profileId, @RequestBody @Valid FollowRequest dto) {
+        DefaultResponse<Void> response = this.followService.follow(profileId, dto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @Override
@@ -41,13 +42,6 @@ public class FollowController implements FollowControllerDocs {
     @GetMapping("/{profileId}")
     public ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllFollows(@PathVariable String profileId, @Valid FollowParam param, @Valid PaginationParam pagination) {
         DefaultResponse<List<FollowResponse>> response = this.followService.findAllFollowers(profileId, param, pagination);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @Override
-    @DeleteMapping("/{profileId}")
-    public ResponseEntity<DefaultResponse<Void>> unfollow(@PathVariable String profileId) {
-        DefaultResponse<Void> response = this.followService.unfollow(profileId);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

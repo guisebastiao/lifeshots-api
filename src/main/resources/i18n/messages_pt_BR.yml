@@ -281,6 +281,9 @@ validation:
     ids:
       not-null: A lista de IDs não pode ser nula.
       not-empty: A lista de IDs não pode estar vazia.
+  follow-request:
+    follow:
+      not-null: Informe se você deseja seguir o usuário.
   forgot-password-request:
     email: *email-validation
   like-comment-request:

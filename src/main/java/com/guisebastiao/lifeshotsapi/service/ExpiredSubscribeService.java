@@ -1,5 +1,5 @@
 package com.guisebastiao.lifeshotsapi.service;
 
-public interface ExpiredDeviceService {
-    void deleteDevicesExpired();
+public interface ExpiredSubscribeService {
+    void deleteSubscribesExpired();
 }

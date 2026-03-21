@@ -1,7 +1,10 @@
 package com.guisebastiao.lifeshotsapi.security.handler;
 
+import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.RoleResponse;
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
 import com.guisebastiao.lifeshotsapi.security.services.RefreshTokenService;
@@ -27,6 +30,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
+    private final UserMapper userMapper;
     private final Environment environment;
 
     @Value("${cookie.access-token.name}")
@@ -41,10 +45,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, Environment environment) {
+    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, Environment environment) {
         this.userRepository = userRepository;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
+        this.userMapper = userMapper;
         this.environment = environment;
     }
 
@@ -72,10 +77,30 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
             loginAndCreateAllCookies(response, accessToken, refreshToken.getRefreshToken().toString(), refreshToken.getDevice().getId());
 
-            response.sendRedirect(frontendUrl + "/oauth/success");
+            redirectWithSuccess(response, userMapper.authDTO(user));
         } catch (Exception ex) {
             redirectWithError(response, "oauth_internal_error");
         }
+    }
+
+    private void redirectWithSuccess(HttpServletResponse response, AuthResponse dto) throws IOException {
+        String redirectUrl = UriComponentsBuilder
+                .fromUriString(frontendUrl)
+                .path("/oauth/success")
+                .queryParam("id", dto.id())
+                .queryParam("handle", dto.handle())
+                .queryParam(
+                        "roles",
+                        dto.roles()
+                                .stream()
+                                .map(RoleResponse::roleName)
+                                .toList()
+                )
+                .build()
+                .encode()
+                .toUriString();
+
+        response.sendRedirect(redirectUrl);
     }
 
     private void redirectWithError(HttpServletResponse response, String errorCode) throws IOException {

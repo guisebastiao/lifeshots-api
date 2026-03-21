@@ -129,25 +129,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public DefaultResponse<AuthResponse> session(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipal principal)) {
-            throw new BusinessException(BusinessHttpStatus.UNAUTHENTICATED, getMessage("services.auth-service.methods.session.unauthenticated"));
-        }
-
-        User user = principal.getUser();
-
-        return DefaultResponse.success(userMapper.authDTO(user));
-    }
-
-    @Override
     @Transactional
-    public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) {
+    public DefaultResponse<AuthResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
         RefreshToken refreshToken = refreshTokenService.validateRefreshToken(request, response);
         String accessToken = accessTokenService.createAccessToken(refreshToken.getDevice().getUser());
 
         createTokenAndRefreshTokenCookies(response, accessToken, refreshToken.getRefreshToken().toString());
 
-        return DefaultResponse.success();
+        return DefaultResponse.success(userMapper.authDTO(refreshToken.getDevice().getUser()));
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.guisebastiao.lifeshotsapi.controller.docs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
+import com.guisebastiao.lifeshotsapi.dto.request.FollowRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.InvalidRequestBodyResponse;
@@ -27,13 +28,13 @@ public interface FollowControllerDocs {
     class FollowListSuccess extends PagingSuccess<List<FollowResponse>> {}
 
     @Operation(
-            summary = "Follow profile",
-            description = "Creates a follow relationship between the authenticated user and the specified profile. The user cannot follow themselves or follow the same profile more than once."
+            summary = "Update follow status",
+            description = "Updates the follow relationship between the authenticated user and the specified profile. Send `follow=true` to follow the profile or `follow=false` to unfollow it. Users cannot follow their own profile."
     )
     @ApiResponses({
             @ApiResponse(
-                    responseCode = "201",
-                    description = "Profile followed successfully.",
+                    responseCode = "200",
+                    description = "Follow status updated successfully.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = SuccessResponse.class)
@@ -41,7 +42,7 @@ public interface FollowControllerDocs {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Follow relationship already exists.",
+                    description = "Invalid request data.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class)
@@ -49,7 +50,15 @@ public interface FollowControllerDocs {
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Authentication required. The user must be logged in to follow a profile.",
+                    description = "Authentication required. The user must be logged in.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Operation not allowed. Users cannot follow their own profile.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class)
@@ -64,14 +73,6 @@ public interface FollowControllerDocs {
                     )
             ),
             @ApiResponse(
-                    responseCode = "409",
-                    description = "Invalid operation. Users cannot follow their own profile.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
                     responseCode = "500",
                     description = "An unexpected internal server error occurred.",
                     content = @Content(
@@ -80,7 +81,7 @@ public interface FollowControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<Void>> follow(String profileId);
+    ResponseEntity<DefaultResponse<Void>> follow(String profileId, FollowRequest dto);
 
     @Operation(
             summary = "Retrieve authenticated user's follow relationships",
@@ -169,60 +170,4 @@ public interface FollowControllerDocs {
             )
     })
     ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllFollows(String profileId, FollowParam param, PaginationParam pagination);
-
-    @Operation(
-            summary = "Unfollow profile",
-            description = "Removes the follow relationship between the authenticated user and the specified profile. The user cannot unfollow themselves."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Profile unfollowed successfully.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = SuccessResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Follow relationship does not exist.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentication required. The user must be logged in to unfollow a profile.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Profile not found.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Invalid operation. Users cannot unfollow their own profile.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "An unexpected internal server error occurred.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            )
-    })
-    ResponseEntity<DefaultResponse<Void>> unfollow(String profileId);
 }

@@ -281,6 +281,9 @@ validation:
     ids:
       not-null: ID list cannot be null.
       not-empty: ID list cannot be empty.
+  follow-request:
+    follow:
+      not-null: Please indicate if you wish to follow the user.
   forgot-password-request:
     email: *email-validation
   like-comment-request:

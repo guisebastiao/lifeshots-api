@@ -18,7 +18,7 @@ public class PushSubscription extends Auditable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, length = 1000, unique = true)
     private String endpoint;
 
     @Column(nullable = false, length = 500)
@@ -27,7 +27,10 @@ public class PushSubscription extends Auditable {
     @Column(nullable = false, length = 500)
     private String auth;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "device_id", nullable = false, unique = true)
+    @JoinColumn(name = "device_id", nullable = false)
     private Device device;
 }

@@ -32,6 +32,7 @@ public class PushSubscriptionServiceImpl implements PushSubscriptionService {
     @Value("${cookie.device-id.name}")
     private String cookieDeviceIdName;
 
+
     public PushSubscriptionServiceImpl(PushSubscriptionRepository pushSubscriptionRepository, DeviceRepository deviceRepository, UUIDConverter uuidConverter, MessageSource messageSource) {
         this.pushSubscriptionRepository = pushSubscriptionRepository;
         this.deviceRepository = deviceRepository;
@@ -45,22 +46,23 @@ public class PushSubscriptionServiceImpl implements PushSubscriptionService {
         String deviceIdRequest = getCookieByRequest(request, cookieDeviceIdName)
                 .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.push-subscription.methods.subscribe.not-found-device-id")));
 
-        Device device = deviceRepository.findByIdForUpdate(uuidConverter.toUUID(deviceIdRequest))
+        Device device = deviceRepository.findById(uuidConverter.toUUID(deviceIdRequest))
                 .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.push-subscription.methods.subscribe.not-found-device-id")));
 
-        PushSubscription subscription = device.getPushSubscription();
-
-        if (subscription == null) {
-            subscription = new PushSubscription();
-            subscription.setDevice(device);
-            device.setPushSubscription(subscription);
-        }
+        PushSubscription subscription = pushSubscriptionRepository
+                .findByDevice(device)
+                .orElseGet(() -> {
+                    PushSubscription subs = new PushSubscription();
+                    subs.setDevice(device);
+                    return subs;
+                });
 
         subscription.setEndpoint(dto.endpoint());
         subscription.setP256dh(dto.keys().p256dh());
         subscription.setAuth(dto.keys().auth());
+        subscription.setActive(true);
 
-        pushSubscriptionRepository.save(subscription);
+        pushSubscriptionRepository.upsert(subscription);
 
         return DefaultResponse.success();
     }

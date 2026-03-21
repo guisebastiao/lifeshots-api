@@ -144,15 +144,17 @@ CREATE TABLE push_subscriptions
     endpoint   VARCHAR(1000)            NOT NULL,
     p256dh     VARCHAR(500)             NOT NULL,
     auth       VARCHAR(500)             NOT NULL,
+    active     BOOLEAN                  NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_push_subscriptions PRIMARY KEY (id),
-    CONSTRAINT uq_push_subscriptions_device UNIQUE (device_id),
+    CONSTRAINT uq_push_subscriptions_endpoint UNIQUE (endpoint),
     CONSTRAINT fk_push_subscriptions_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_push_subscriptions_device_id ON push_subscriptions (device_id);
+CREATE INDEX idx_push_subscriptions_active ON push_subscriptions (active) WHERE active = TRUE;
 
 -- -----------------------------------------------------------------------------
 -- RECOVER_PASSWORDS

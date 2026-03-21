@@ -1,10 +1,8 @@
 package com.guisebastiao.lifeshotsapi.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import org.hibernate.validator.constraints.Length;
+import jakarta.validation.constraints.NotNull;
 
-public record CommentRequest(
-        @NotBlank(message = "{validation.comment-request.content.not-blank}")
-        @Length(max = 300, message = "{validation.comment-request.content.length}")
-        String content
+public record FollowRequest(
+        @NotNull(message = "{validation.follow-request.follow.not-null}")
+        boolean follow
 ) { }

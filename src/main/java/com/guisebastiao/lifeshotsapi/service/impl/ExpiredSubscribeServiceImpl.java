@@ -1,28 +1,22 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
-import com.guisebastiao.lifeshotsapi.repository.DeviceRepository;
-import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
-import com.guisebastiao.lifeshotsapi.service.ExpiredDeviceService;
+import com.guisebastiao.lifeshotsapi.repository.PushSubscriptionRepository;
+import com.guisebastiao.lifeshotsapi.service.ExpiredSubscribeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-
 @Service
-public class ExpiredDeviceServiceImpl implements ExpiredDeviceService {
+public class ExpiredSubscribeServiceImpl implements ExpiredSubscribeService {
 
-    private final DeviceRepository deviceRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
 
-    public ExpiredDeviceServiceImpl(DeviceRepository deviceRepository, RefreshTokenRepository refreshTokenRepository) {
-        this.deviceRepository = deviceRepository;
-        this.refreshTokenRepository = refreshTokenRepository;
+    public ExpiredSubscribeServiceImpl(PushSubscriptionRepository pushSubscriptionRepository) {
+        this.pushSubscriptionRepository = pushSubscriptionRepository;
     }
 
     @Override
     @Transactional
-    public void deleteDevicesExpired() {
-        refreshTokenRepository.deleteByExpiresAtBefore(Instant.now());
-        deviceRepository.deleteDevicesWithoutRefreshTokens();
+    public void deleteSubscribesExpired() {
+        pushSubscriptionRepository.deleteAllByNotActive();
     }
 }

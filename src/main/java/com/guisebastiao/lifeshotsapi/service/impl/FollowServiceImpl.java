@@ -3,6 +3,7 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.dto.*;
 import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
+import com.guisebastiao.lifeshotsapi.dto.request.FollowRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
@@ -55,45 +56,63 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     @Transactional
-    public DefaultResponse<Void> follow(String profileId) {
+    public DefaultResponse<Void> follow(String profileId, FollowRequest dto) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
-        Profile following = profileRepository.findById(uuidConverter.toUUID(profileId))
+        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
                     .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.follow.not-found)")));
 
-        if (user.getProfile().getId().equals(following.getId())) {
+        if (user.getProfile().getId().equals(profile.getId())) {
             throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.conflict"));
         }
 
-        if (followRepository.existsByFollowerAndFollowing(user.getProfile(), following)) {
+        if (!dto.follow()) {
+            if (user.getProfile().getId().equals(profile.getId())) {
+                throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.unfollow.conflict"));
+            }
+
+            Follow follow = followRepository.findByFollowingAndFollower(profile, user.getProfile())
+                    .orElseThrow(() -> new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.follow-service.methods.unfollow.bad-request")));
+
+            followRepository.delete(follow);
+
+            profile.setFollowersCount(profile.getFollowersCount() - 1);
+            user.getProfile().setFollowingCount(user.getProfile().getFollowingCount() - 1);
+
+            profileRepository.saveAll(List.of(profile, user.getProfile()));
+
+            return DefaultResponse.success();
+        }
+
+        if (followRepository.existsByFollowerAndFollowing(user.getProfile(), profile)) {
             throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.follow.bad-request"));
         }
 
         FollowId followId = new FollowId();
-        followId.setFollowingId(following.getId());
+        followId.setFollowingId(profile.getId());
         followId.setFollowerId(user.getProfile().getId());
 
         Follow follow = new Follow();
         follow.setId(followId);
         follow.setFollower(user.getProfile());
-        follow.setFollowing(following);
+        follow.setFollowing(profile);
 
         followRepository.save(follow);
 
-        following.setFollowersCount(following.getFollowersCount() + 1);
+        profile.setFollowersCount(profile.getFollowersCount() + 1);
         user.getProfile().setFollowingCount(user.getProfile().getFollowingCount() + 1);
 
-        profileRepository.saveAll(List.of(following, user.getProfile()));
+        profileRepository.saveAll(List.of(profile, user.getProfile()));
 
         String title = getMessage("messages.follow-account.title");
         String message = getMessage("messages.follow-account.message", new Object[]{ user.getHandle() });
-        User receiver = following.getUser();
+        User receiver = profile.getUser();
 
         if (notifyUser(receiver)) {
             pushSenderService.sendPush(title, message, receiver.getId());
         }
 
-        Notification notification = createNotification(title, message, following, user.getProfile());
+        Notification notification = createNotification(title, message, profile, user.getProfile());
 
         notificationRepository.save(notification);
 
@@ -149,31 +168,6 @@ public class FollowServiceImpl implements FollowService {
                 .toList();
 
         return DefaultResponse.success(data, meta);
-    }
-
-    @Override
-    @Transactional
-    public DefaultResponse<Void> unfollow(String profileId) {
-        User user = authenticatedUserProvider.getAuthenticatedUser();
-
-        Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.follow-service.methods.unfollow.not-found")));
-
-        if (user.getProfile().getId().equals(profile.getId())) {
-            throw new BusinessException(BusinessHttpStatus.CONFLICT, getMessage("services.follow-service.methods.unfollow.conflict"));
-        }
-
-        Follow follow = followRepository.findByFollowingAndFollower(profile, user.getProfile())
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.follow-service.methods.unfollow.bad-request")));
-
-        followRepository.delete(follow);
-
-        profile.setFollowersCount(profile.getFollowersCount() - 1);
-        user.getProfile().setFollowingCount(user.getProfile().getFollowingCount() - 1);
-
-        profileRepository.saveAll(List.of(profile, user.getProfile()));
-
-        return DefaultResponse.success();
     }
 
     private Notification createNotification(String title, String message, Profile receiver, Profile sender) {

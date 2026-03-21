@@ -6,12 +6,10 @@ import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
 import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.core.Authentication;
 
 public interface AuthService {
     DefaultResponse<AuthResponse> login(HttpServletRequest request, HttpServletResponse response, LoginRequest dto);
     DefaultResponse<AuthResponse> register(RegisterRequest dto);
-    DefaultResponse<AuthResponse> session(Authentication authentication);
-    DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response);
+    DefaultResponse<AuthResponse> refresh(HttpServletRequest request, HttpServletResponse response);
     DefaultResponse<Void> logout(HttpServletRequest request, HttpServletResponse response);
 }
