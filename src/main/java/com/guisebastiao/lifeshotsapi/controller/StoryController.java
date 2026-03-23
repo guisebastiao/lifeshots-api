@@ -40,8 +40,8 @@ public class StoryController implements StoryControllerDocs {
 
     @Override
     @GetMapping("/me")
-    public ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesByAuthUser() {
-        DefaultResponse<List<StoryResponse>> response = this.storyService.findStoriesByAuthUser();
+    public ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesMe() {
+        DefaultResponse<List<StoryResponse>> response = this.storyService.findStoriesMe();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

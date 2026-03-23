@@ -8,16 +8,14 @@ import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UnreadResponse;
 import com.guisebastiao.lifeshotsapi.entity.Notification;
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.AccessDeniedException;
+import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.NotificationService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,14 +29,12 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final NotificationMapper notificationMapper;
-    private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
 
-    public NotificationServiceImpl(NotificationRepository notificationRepository, AuthenticatedUserProvider authenticatedUserProvider, NotificationMapper notificationMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public NotificationServiceImpl(NotificationRepository notificationRepository, AuthenticatedUserProvider authenticatedUserProvider, NotificationMapper notificationMapper, UUIDConverter uuidConverter) {
         this.notificationRepository = notificationRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
         this.notificationMapper = notificationMapper;
-        this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
     }
 
@@ -82,10 +78,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.find-notification-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.notification-service.methods.find-notification-by-id.not-found"));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.find-notification-by-id.forbidden"));
+            throw new AccessDeniedException("services.notification-service.methods.find-notification-by-id.forbidden");
         }
 
         return DefaultResponse.success(notificationMapper.toDTO(notification));
@@ -97,10 +93,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.read-notification-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.notification-service.methods.read-notification-by-id.not-found"));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.read-notification-by-id.forbidden"));
+            throw new AccessDeniedException("services.notification-service.methods.read-notification-by-id.forbidden");
         }
 
         notification.setRead(true);
@@ -123,10 +119,10 @@ public class NotificationServiceImpl implements NotificationService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Notification notification = notificationRepository.findById(uuidConverter.toUUID(notificationId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.notification-service.methods.delete-notification-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.notification-service.methods.read-notification-by-id.not-found"));
 
         if (!notification.getReceiver().getId().equals(user.getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.notification-service.methods.delete-notification-by-id.forbidden"));
+            throw new AccessDeniedException("services.notification-service.methods.read-notification-by-id.forbidden");
         }
 
         notification.setDeleted(true);
@@ -147,9 +143,5 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.saveAll(notifications);
 
         return DefaultResponse.success();
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

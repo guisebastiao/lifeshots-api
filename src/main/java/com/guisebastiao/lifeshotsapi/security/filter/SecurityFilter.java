@@ -10,7 +10,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -26,16 +25,14 @@ public class SecurityFilter extends OncePerRequestFilter {
     private final AccessTokenService accessTokenService;
     private final UserRepository userRepository;
     private final UUIDConverter uuidConverter;
-    private final Environment environment;
 
     @Value("${cookie.access-token.name}")
     private String cookieAccessTokenName;
 
-    public SecurityFilter(AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter, Environment environment) {
+    public SecurityFilter(AccessTokenService accessTokenService, UserRepository userRepository, UUIDConverter uuidConverter) {
         this.accessTokenService = accessTokenService;
         this.userRepository = userRepository;
         this.uuidConverter = uuidConverter;
-        this.environment = environment;
     }
 
     @Override
@@ -70,9 +67,5 @@ public class SecurityFilter extends OncePerRequestFilter {
                 .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
-    }
-
-    private boolean isProduction() {
-        return Arrays.asList(environment.getActiveProfiles()).contains("prod");
     }
 }

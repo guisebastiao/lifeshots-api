@@ -1,6 +1,7 @@
 package com.guisebastiao.lifeshotsapi.repository;
 
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
+import com.guisebastiao.lifeshotsapi.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,13 +16,8 @@ import java.util.UUID;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
-    @Query("SELECT rt FROM RefreshToken rt WHERE rt.refreshToken = :refreshToken")
-    Optional<RefreshToken> findByRefreshToken(@Param("refreshToken") UUID refreshToken);
-
-    @Modifying
-    @Transactional
-    @Query("DELETE FROM RefreshToken rt WHERE rt.expiresAt < :expiresAt")
-    void deleteByExpiresAtBefore(@Param("expiresAt") Instant expiresAt);
+    @Query("SELECT rt FROM RefreshToken rt WHERE rt.refreshToken = :refreshToken AND rt.user = :user")
+    Optional<RefreshToken> findByRefreshTokenAndUser(@Param("refreshToken") UUID refreshToken, @Param("user") User user);
 
     @Modifying
     @Transactional

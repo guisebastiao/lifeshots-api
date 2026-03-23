@@ -6,8 +6,8 @@ import com.guisebastiao.lifeshotsapi.dto.request.ForgotPasswordRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RecoverPasswordRequest;
 import com.guisebastiao.lifeshotsapi.entity.RecoverPassword;
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.BadRequestException;
+import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
 import com.guisebastiao.lifeshotsapi.repository.RecoverPasswordRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.service.MailSenderService;
@@ -15,8 +15,6 @@ import com.guisebastiao.lifeshotsapi.service.RecoverPasswordService;
 import com.guisebastiao.lifeshotsapi.util.TokenGenerator;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -35,19 +33,17 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
     private final PasswordEncoder passwordEncoder;
     private final TokenGenerator tokenGenerator;
     private final TemplateEngine templateEngine;
-    private final MessageSource messageSource;
 
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    public RecoverPasswordServiceImpl(UserRepository userRepository, RecoverPasswordRepository recoverPasswordRepository, MailSenderService mailSenderService, PasswordEncoder passwordEncoder, TokenGenerator tokenGenerator, TemplateEngine templateEngine, MessageSource messageSource) {
+    public RecoverPasswordServiceImpl(UserRepository userRepository, RecoverPasswordRepository recoverPasswordRepository, MailSenderService mailSenderService, PasswordEncoder passwordEncoder, TokenGenerator tokenGenerator, TemplateEngine templateEngine) {
         this.userRepository = userRepository;
         this.recoverPasswordRepository = recoverPasswordRepository;
         this.mailSenderService = mailSenderService;
         this.passwordEncoder = passwordEncoder;
         this.tokenGenerator = tokenGenerator;
         this.templateEngine = templateEngine;
-        this.messageSource = messageSource;
     }
 
     @Override
@@ -62,11 +58,11 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
         String token = tokenGenerator.generateToken(32);
 
-        RecoverPassword recoverPassword = new RecoverPassword();
-        recoverPassword.setUser(user.get());
-        recoverPassword.setToken(token);
-        recoverPassword.setExpiresAt(expiresAt);
-        recoverPassword.setActive(true);
+        RecoverPassword recoverPassword = RecoverPassword.builder()
+                .user(user.get())
+                .token(token)
+                .expiresAt(expiresAt)
+                .build();
 
         recoverPasswordRepository.save(recoverPassword);
 
@@ -82,10 +78,10 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
     @Transactional
     public DefaultResponse<Void> recoverPassword(RecoverPasswordTokenParam param, RecoverPasswordRequest dto) {
         RecoverPassword recoverPassword = recoverPasswordRepository.findRecoverPasswordByToken(param.token())
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.recover-password-service.methods.recover-password.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.recover-password-service.methods.recover-password.not-found"));
 
         if (!recoverPassword.isActive() || recoverPassword.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.recover-password-service.methods.recover-password.bad-request"));
+            throw new BadRequestException("services.recover-password-service.methods.recover-password.bad-request");
         }
 
         User user = recoverPassword.getUser();
@@ -113,9 +109,5 @@ public class RecoverPasswordServiceImpl implements RecoverPasswordService {
                 .build()
                 .encode()
                 .toUriString();
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

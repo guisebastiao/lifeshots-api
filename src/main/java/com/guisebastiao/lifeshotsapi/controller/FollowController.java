@@ -5,7 +5,7 @@ import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.FollowParam;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.FollowRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.FollowResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.service.FollowService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,16 +32,9 @@ public class FollowController implements FollowControllerDocs {
     }
 
     @Override
-    @GetMapping
-    public ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllMyFollows(@Valid FollowParam param, @Valid PaginationParam pagination) {
-        DefaultResponse<List<FollowResponse>> response = this.followService.findAllMyFollowers(param, pagination);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @Override
     @GetMapping("/{profileId}")
-    public ResponseEntity<DefaultResponse<List<FollowResponse>>> findAllFollows(@PathVariable String profileId, @Valid FollowParam param, @Valid PaginationParam pagination) {
-        DefaultResponse<List<FollowResponse>> response = this.followService.findAllFollowers(profileId, param, pagination);
+    public ResponseEntity<DefaultResponse<List<ProfileResponse>>> findAllFollows(@PathVariable String profileId, @Valid FollowParam param, @Valid PaginationParam pagination) {
+        DefaultResponse<List<ProfileResponse>> response = this.followService.findAllFollowers(profileId, param, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

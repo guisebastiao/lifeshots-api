@@ -11,7 +11,7 @@ import java.lang.annotation.*;
 @Constraint(validatedBy = ValidateEnum.class)
 public @interface EnumValidator {
     Class<? extends Enum<?>> enumClass();
-    String message() default "Invalid enum value";
+    String message() default "{validation.enum.validator.error}";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

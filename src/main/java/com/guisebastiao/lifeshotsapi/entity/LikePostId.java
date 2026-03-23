@@ -2,6 +2,7 @@ package com.guisebastiao.lifeshotsapi.entity;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.util.UUID;
 @Embeddable
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class LikePostId implements Serializable {
     private UUID profileId;
     private UUID postId;

@@ -3,6 +3,7 @@ package com.guisebastiao.lifeshotsapi.controller;
 import com.guisebastiao.lifeshotsapi.controller.docs.AccountControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.DeleteAccountRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.LanguageRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
@@ -21,10 +22,16 @@ public class AccountController implements AccountControllerDocs {
         this.accountService = accountService;
     }
 
+    @PatchMapping("/language")
+    public ResponseEntity<DefaultResponse<Void>> language(@Valid @RequestBody LanguageRequest dto) {
+        DefaultResponse<Void> response = accountService.language(dto);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     @Override
     @PatchMapping("/privacy")
     public ResponseEntity<DefaultResponse<Void>> setProfilePrivacy(@Valid @RequestBody ProfilePrivacyRequest dto) {
-        DefaultResponse<Void> response = accountService.setProfilePrivacy(dto);
+        DefaultResponse<Void> response = accountService.profilePrivacy(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

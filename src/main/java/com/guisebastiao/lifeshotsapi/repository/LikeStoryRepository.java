@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LikeStoryRepository extends JpaRepository<LikeStory, LikeStoryId> {
 
-    Page<LikeStory> findAllByStory(Story story, Pageable pageable);
+    @Query("SELECT p FROM LikeStory ls JOIN ls.profile p WHERE ls.story = :story")
+    Page<Profile> findAllByStory(@Param("story") Story story, Pageable pageable);
 
     boolean existsByStoryAndProfile(Story story, Profile profile);
 

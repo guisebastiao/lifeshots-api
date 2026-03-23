@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record PushSubscriptionRequest(
 
-        @NotBlank(message = "{validation.push-subscription-request.endpoint.not-blank}")
+        @NotBlank
         String endpoint,
 
         @Valid
@@ -13,10 +13,10 @@ public record PushSubscriptionRequest(
 ) {
     public record Keys(
 
-            @NotBlank(message = "{validation.push-subscription-request.keys.p256dh.not-blank}")
+            @NotBlank
             String p256dh,
 
-            @NotBlank(message = "{validation.push-subscription-request.keys.auth.not-blank}")
+            @NotBlank
             String auth
     ){}
 }

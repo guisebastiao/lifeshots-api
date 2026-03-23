@@ -2,7 +2,7 @@ package com.guisebastiao.lifeshotsapi.security.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.enums.BusinessCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.MessageSource;
@@ -33,12 +33,11 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
     }
 
     private String generateCode(String error) {
-        if (error == null) return BusinessHttpStatus.UNAUTHENTICATED.getCode();
+        if (error == null) return BusinessCode.UNAUTHORIZED.getValue();
 
         return switch (error) {
-            case "token_expired" -> BusinessHttpStatus.TOKEN_EXPIRED.getCode();
-            case "invalid_token" -> BusinessHttpStatus.TOKEN_INVALID.getCode();
-            default -> BusinessHttpStatus.SESSION_INVALID.getCode();
+            case "token_expired" -> BusinessCode.TOKEN_EXPIRED.getValue();
+            default -> BusinessCode.SESSION_EXPIRED.getValue();
         };
     }
 

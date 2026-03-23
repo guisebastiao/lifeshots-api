@@ -3,12 +3,13 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.dto.*;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikePostRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LikePostResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.enums.Language;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
-import com.guisebastiao.lifeshotsapi.mapper.LikePostMapper;
+import com.guisebastiao.lifeshotsapi.exception.ConflictException;
+import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
+import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.LikePostRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
@@ -19,7 +20,6 @@ import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,18 +37,18 @@ public class LikePostServiceImpl implements LikePostService {
     private final PostRepository postRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final PushSenderService pushSenderService;
-    private final LikePostMapper likePostMapper;
+    private final ProfileMapper profileMapper;
     private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
 
-    public LikePostServiceImpl(LikePostRepository likePostRepository, NotificationRepository notificationRepository, NotificationSettingRepository notificationSettingRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, PushSenderService pushSenderService, LikePostMapper likePostMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public LikePostServiceImpl(LikePostRepository likePostRepository, NotificationRepository notificationRepository, NotificationSettingRepository notificationSettingRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, PushSenderService pushSenderService, ProfileMapper profileMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
         this.likePostRepository = likePostRepository;
         this.notificationRepository = notificationRepository;
         this.notificationSettingRepository = notificationSettingRepository;
         this.postRepository = postRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
         this.pushSenderService = pushSenderService;
-        this.likePostMapper = likePostMapper;
+        this.profileMapper = profileMapper;
         this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
     }
@@ -59,15 +59,12 @@ public class LikePostServiceImpl implements LikePostService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.like-post.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.like-post-service.methods.like-post.not-found"));
 
         boolean alreadyLiked = likePostRepository.alreadyLikedPost(post, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
-                    getMessage("services.like-post-service.methods.like-post.conflict-already-liked") :
-                    getMessage("services.like-post-service.methods.like-post.conflict-not-liked")
-            );
+            throw new ConflictException(dto.like() ? "services.like-post-service.methods.like-post.conflict-already-liked" : "services.like-post-service.methods.like-post.conflict-not-liked");
         }
 
         if (dto.like()) {
@@ -85,13 +82,13 @@ public class LikePostServiceImpl implements LikePostService {
 
     @Override
     @Transactional(readOnly = true)
-    public DefaultResponse<List<LikePostResponse>> findAllLikePost(String postId, PaginationParam pagination) {
+    public DefaultResponse<List<ProfileResponse>> findAllLikePost(String postId, PaginationParam pagination) {
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-post-service.methods.find-all-like-post.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.like-post-service.methods.find-all-like-post.not-found"));
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit(), Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<LikePost> resultPage = likePostRepository.findAllByPost(post, pageable);
+        Page<Profile> resultPage = likePostRepository.findAllByPost(post, pageable);
 
         DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
                 .totalItems(resultPage.getTotalElements())
@@ -100,20 +97,24 @@ public class LikePostServiceImpl implements LikePostService {
                 .itemsPerPage(pagination.limit())
                 .build();
 
-        List<LikePostResponse> data = resultPage.getContent().stream()
-                .map(likePostMapper::toDTO)
+        List<ProfileResponse> data = resultPage.getContent().stream()
+                .map(profileMapper::toDTO)
                 .toList();
 
         return DefaultResponse.success(data, meta);
     }
 
     private void likePost(Post post, Profile profile) {
-        LikePostId id = new LikePostId(profile.getId(), post.getId());
+        LikePostId id = LikePostId.builder()
+                .postId(post.getId())
+                .profileId(profile.getId())
+                .build();
 
-        LikePost like = new LikePost();
-        like.setId(id);
-        like.setProfile(profile);
-        like.setPost(post);
+        LikePost like = LikePost.builder()
+                .id(id)
+                .post(post)
+                .profile(profile)
+                .build();
 
         likePostRepository.save(like);
 
@@ -121,8 +122,10 @@ public class LikePostServiceImpl implements LikePostService {
             return;
         }
 
-        String title = getMessage("messages.like-post.title");
-        String message = getMessage("messages.like-post.message", new Object[]{ profile.getUser().getHandle() });
+        Language lang = post.getProfile().getUser().getUserLanguage();
+
+        String title = messageSource.getMessage("messages.like-post.title", null, lang.getLocale());
+        String message = messageSource.getMessage("messages.like-post.message", new Object[]{ profile.getUser().getHandle() }, lang.getLocale());
         User receiver = post.getProfile().getUser();
 
         if (notifyUser(receiver)) {
@@ -134,30 +137,26 @@ public class LikePostServiceImpl implements LikePostService {
     }
 
     private void unlikePost(Post post, Profile profile) {
-        LikePostId id = new LikePostId(profile.getId(), post.getId());
+        LikePostId id = LikePostId.builder()
+                .postId(post.getId())
+                .profileId(profile.getId())
+                .build();
+
         likePostRepository.findById(id).ifPresent(likePostRepository::delete);
     }
 
     private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
-        Notification notification = new Notification();
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setReceiver(receiver);
-        notification.setSender(sender);
-        notification.setType(NotificationType.LIKE_POST);
-        return notification;
+        return Notification.builder()
+                .title(title)
+                .message(message)
+                .sender(sender)
+                .receiver(receiver)
+                .type(NotificationType.LIKE_POST)
+                .build();
     }
 
     private boolean notifyUser(User user) {
         NotificationSetting setting = notificationSettingRepository.findByUser(user);
         return setting.isNotifyLikePost() && setting.isNotifyAllNotifications();
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
-    }
-
-    private String getMessage(String key, Object[] args) {
-        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

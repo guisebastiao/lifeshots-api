@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record FollowParam(
 
-        @NotNull(message = "{validation.follow-param.type.not-null}")
-        @EnumValidator(enumClass = FollowType.class, message = "{validation.follow-param.type.invalid-enum}")
+        @NotNull
+        @EnumValidator(enumClass = FollowType.class)
         String type
 ) { }

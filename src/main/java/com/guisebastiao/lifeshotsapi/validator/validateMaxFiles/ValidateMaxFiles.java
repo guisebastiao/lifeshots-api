@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = MaxFilesValidator.class)
 public @interface ValidateMaxFiles {
-    String message() default "Maximum number of files exceeded.";
+    String message() default "{validation.max-files.validator.error}";
     int max();
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};

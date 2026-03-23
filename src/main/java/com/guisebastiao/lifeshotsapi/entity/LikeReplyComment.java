@@ -3,12 +3,13 @@ package com.guisebastiao.lifeshotsapi.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
-@Table(name = "like_reply_comments")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "like_reply_comments")
 public class LikeReplyComment extends Auditable {
 
     @EmbeddedId

@@ -1,6 +1,6 @@
 package com.guisebastiao.lifeshotsapi.config;
 
-import com.guisebastiao.lifeshotsapi.security.filter.RateLimitingFilter;
+import com.guisebastiao.lifeshotsapi.security.filter.RateLimitFilter;
 import com.guisebastiao.lifeshotsapi.security.filter.SecurityFilter;
 import com.guisebastiao.lifeshotsapi.security.handler.CustomAccessDeniedHandler;
 import com.guisebastiao.lifeshotsapi.security.handler.CustomAuthenticationEntryPoint;
@@ -34,7 +34,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final SecurityFilter securityFilter;
-    private final RateLimitingFilter rateLimitingFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -43,9 +43,9 @@ public class SecurityConfig {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    public SecurityConfig(SecurityFilter securityFilter, RateLimitingFilter rateLimitingFilter, CustomAuthenticationEntryPoint customAuthenticationEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler, OAuth2SuccessHandler oAuth2SuccessHandler, OAuth2FailureHandler oAuth2FailureHandler) {
+    public SecurityConfig(SecurityFilter securityFilter, RateLimitFilter rateLimitFilter, CustomAuthenticationEntryPoint customAuthenticationEntryPoint, CustomAccessDeniedHandler customAccessDeniedHandler, OAuth2SuccessHandler oAuth2SuccessHandler, OAuth2FailureHandler oAuth2FailureHandler) {
         this.securityFilter = securityFilter;
-        this.rateLimitingFilter = rateLimitingFilter;
+        this.rateLimitFilter = rateLimitFilter;
         this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
         this.customAccessDeniedHandler = customAccessDeniedHandler;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
@@ -87,7 +87,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
-                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

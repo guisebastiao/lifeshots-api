@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = FilesizeValidator.class)
 public @interface ValidateFilesize {
-    String message() default "The file exceeds the maximum limit.";
+    String message() default "{validation.filesize.validator.error}";
     long max();
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};

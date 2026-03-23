@@ -5,17 +5,18 @@ import lombok.*;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "story_pictures")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "story_pictures")
 public class StoryPicture extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
     @OneToOne

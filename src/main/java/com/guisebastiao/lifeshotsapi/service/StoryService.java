@@ -10,7 +10,7 @@ import java.util.List;
 public interface StoryService {
     DefaultResponse<StoryResponse> createStory(StoryRequest dto);
     DefaultResponse<StoryResponse> findStoryById(String storyId);
-    DefaultResponse<List<StoryResponse>> findStoriesByAuthUser();
+    DefaultResponse<List<StoryResponse>> findStoriesMe();
     DefaultResponse<StoryResponse> updateStory(String storyId, StoryUpdateRequest dto);
     DefaultResponse<Void> deleteStory(String storyId);
 }

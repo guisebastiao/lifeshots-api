@@ -1,22 +1,26 @@
 package com.guisebastiao.lifeshotsapi.entity;
 
+import com.guisebastiao.lifeshotsapi.enums.Language;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.*;
 
 
-@Entity
-@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "users")
 public class User extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
     @Column(nullable = false, length = 50, unique = true)
@@ -31,6 +35,11 @@ public class User extends Auditable {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "user_language", nullable = false)
+    private Language userLanguage = Language.PT_BR;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profile profile;
 
@@ -38,10 +47,13 @@ public class User extends Auditable {
     private NotificationSetting notificationSetting;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Device> devices = new ArrayList<>();
+    private List<RecoverPassword> recoverPasswords = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecoverPassword> recoverPasswords = new ArrayList<>();
+    private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PushSubscription> pushSubscriptions = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

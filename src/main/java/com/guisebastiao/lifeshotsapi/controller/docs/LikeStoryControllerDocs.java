@@ -3,7 +3,7 @@ package com.guisebastiao.lifeshotsapi.controller.docs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeStoryRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LikeStoryResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.InvalidRequestBodyResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.PagingSuccess;
@@ -24,7 +24,7 @@ import java.util.List;
 )
 public interface LikeStoryControllerDocs {
 
-    class LikeListSuccess extends PagingSuccess<List<LikeStoryResponse>> {}
+    class LikeListSuccess extends PagingSuccess<List<ProfileResponse>> {}
 
     @Operation(
             summary = "Like or unlike a story",
@@ -144,5 +144,5 @@ public interface LikeStoryControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<List<LikeStoryResponse>>> findAllLikeStory(String storyId, PaginationParam pagination);
+    ResponseEntity<DefaultResponse<List<ProfileResponse>>> findAllLikeStory(String storyId, PaginationParam pagination);
 }

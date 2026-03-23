@@ -10,12 +10,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public record PostRequest(
-        @Length(max = 300, message = "{validation.post-request.content.length}")
+        @Length(max = 300)
         String content,
 
         @NotNull(message = "{validation.post-request.files.not-null}")
-        @ValidateMaxFiles(max = 10, message = "{validation.post-request.files.validate-max-files}")
-        @ValidateFilesize(max = 5 * 1024 * 1024, message = "{validation.post-request.files.validate-filesize}")
-        @ValidateMimetype(allowed = {"image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"}, message = "{validation.post-request.files.validate-mimetype}")
+        @ValidateMaxFiles(max = 10)
+        @ValidateFilesize(max = 5 * 1024 * 1024)
+        @ValidateMimetype(allowed = {"image/jpeg", "image/png", "image/heic", "image/heif", "image/webp"})
         List<MultipartFile> files
 ) { }

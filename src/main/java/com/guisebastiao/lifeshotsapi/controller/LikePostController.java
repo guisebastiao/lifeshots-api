@@ -4,7 +4,7 @@ import com.guisebastiao.lifeshotsapi.controller.docs.LikePostControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikePostRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LikePostResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.service.LikePostService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -32,8 +32,8 @@ public class LikePostController implements LikePostControllerDocs {
 
     @Override
     @GetMapping("/{postId}")
-    public ResponseEntity<DefaultResponse<List<LikePostResponse>>> findAllLikePost(@PathVariable String postId, @Valid PaginationParam pagination) {
-        DefaultResponse<List<LikePostResponse>> response = this.likePostService.findAllLikePost(postId, pagination);
+    public ResponseEntity<DefaultResponse<List<ProfileResponse>>> findAllLikePost(@PathVariable String postId, @Valid PaginationParam pagination) {
+        DefaultResponse<List<ProfileResponse>> response = this.likePostService.findAllLikePost(postId, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

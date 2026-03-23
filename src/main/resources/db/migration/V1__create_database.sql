@@ -23,15 +23,21 @@ CREATE TABLE roles
 -- USERS
 -- -----------------------------------------------------------------------------
 
+CREATE TYPE language_type AS ENUM (
+    'PT_BR',
+    'EN_US'
+);
+
 CREATE TABLE users
 (
-    id         UUID                     NOT NULL DEFAULT gen_random_uuid(),
-    handle     VARCHAR(50)              NOT NULL,
-    email      VARCHAR(250)             NOT NULL,
-    password   VARCHAR(80)              NOT NULL,
-    is_deleted BOOLEAN                  NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    id            UUID                     NOT NULL DEFAULT gen_random_uuid(),
+    handle        VARCHAR(50)              NOT NULL,
+    email         VARCHAR(250)             NOT NULL,
+    password      VARCHAR(80)              NOT NULL,
+    is_deleted    BOOLEAN                  NOT NULL DEFAULT FALSE,
+    user_language language_type            NOT NULL DEFAULT 'PT_BR',
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uq_users_handle UNIQUE (handle),
@@ -51,6 +57,8 @@ CREATE TABLE users_roles
     CONSTRAINT fk_users_roles_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT fk_users_roles_role FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_users_roles_role_id ON users_roles (role_id);
 
 -- -----------------------------------------------------------------------------
 -- PROFILES
@@ -116,31 +124,13 @@ CREATE TABLE notification_settings
 );
 
 -- -----------------------------------------------------------------------------
--- DEVICES
--- -----------------------------------------------------------------------------
-
-CREATE TABLE devices
-(
-    id               UUID                     NOT NULL DEFAULT gen_random_uuid(),
-    user_id          UUID                     NOT NULL,
-    last_accessed_at TIMESTAMP WITH TIME ZONE,
-    created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-
-    CONSTRAINT pk_devices PRIMARY KEY (id),
-    CONSTRAINT fk_devices_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_devices_user_id ON devices (user_id);
-
--- -----------------------------------------------------------------------------
 -- PUSH_SUBSCRIPTIONS
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE push_subscriptions
 (
     id         UUID                     NOT NULL DEFAULT gen_random_uuid(),
-    device_id  UUID                     NOT NULL,
+    user_id    UUID                     NOT NULL,
     endpoint   VARCHAR(1000)            NOT NULL,
     p256dh     VARCHAR(500)             NOT NULL,
     auth       VARCHAR(500)             NOT NULL,
@@ -150,10 +140,9 @@ CREATE TABLE push_subscriptions
 
     CONSTRAINT pk_push_subscriptions PRIMARY KEY (id),
     CONSTRAINT uq_push_subscriptions_endpoint UNIQUE (endpoint),
-    CONSTRAINT fk_push_subscriptions_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
+    CONSTRAINT fk_push_subscriptions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_push_subscriptions_device_id ON push_subscriptions (device_id);
 CREATE INDEX idx_push_subscriptions_active ON push_subscriptions (active) WHERE active = TRUE;
 
 -- -----------------------------------------------------------------------------
@@ -185,16 +174,15 @@ CREATE INDEX idx_recover_passwords_active ON recover_passwords (is_active) WHERE
 CREATE TABLE refresh_tokens
 (
     id            UUID                     NOT NULL DEFAULT gen_random_uuid(),
+    user_id       UUID                     NOT NULL,
     refresh_token UUID                     NOT NULL,
-    device_id     UUID                     NOT NULL,
     expires_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
     CONSTRAINT uq_refresh_tokens_token UNIQUE (refresh_token),
-    CONSTRAINT uq_refresh_tokens_device UNIQUE (device_id),
-    CONSTRAINT fk_refresh_tokens_device FOREIGN KEY (device_id) REFERENCES devices (id) ON DELETE CASCADE
+    CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens (refresh_token);

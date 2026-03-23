@@ -8,13 +8,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = MimetypeValidator.class)
 public @interface ValidateMimetype {
     String[] allowed();
-    String message() default "File format not supported.";
+    String message() default "{validation.mimetype.validator.error}";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

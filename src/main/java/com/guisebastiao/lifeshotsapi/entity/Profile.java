@@ -7,16 +7,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name = "profiles")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "profiles")
 public class Profile extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
+    @GeneratedValue
     private UUID id;
 
     @OneToOne

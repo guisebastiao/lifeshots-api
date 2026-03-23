@@ -2,8 +2,6 @@ package com.guisebastiao.lifeshotsapi.security.services;
 
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,21 +11,15 @@ import org.springframework.stereotype.Service;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final MessageSource messageSource;
 
-    public CustomUserDetailsService(UserRepository userRepository, MessageSource messageSource) {
+    public CustomUserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.messageSource = messageSource;
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return this.userRepository.findByEmail(username)
                 .map(UserPrincipal::new)
-                .orElseThrow(() -> new UsernameNotFoundException(getMessage("security.custom-user-details-service.user-not-found")));
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+                .orElseThrow(() -> new UsernameNotFoundException("security.custom-user-details-service.user-not-found"));
     }
 }

@@ -8,28 +8,29 @@ import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "notifications")
 public class Notification extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String message;
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(columnDefinition = "notification_type", nullable = false)
+    @Column(name = "type", nullable = false)
     private NotificationType type;
 
     @Column(nullable = false)

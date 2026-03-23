@@ -8,8 +8,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.StoryResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.Story;
 import com.guisebastiao.lifeshotsapi.entity.StoryPicture;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.*;
 import com.guisebastiao.lifeshotsapi.mapper.StoryMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.StoryPictureRepository;
@@ -21,8 +20,6 @@ import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -42,10 +39,9 @@ public class StoryServiceImpl implements StoryService {
     private final TokenGenerator tokenGenerator;
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
-    private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
 
-    public StoryServiceImpl(StoryRepository storyRepository, StoryPictureRepository storyPictureRepository, ProfileRepository profileRepository, StoryMapper storyMapper, AuthenticatedUserProvider authenticatedUserProvider, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public StoryServiceImpl(StoryRepository storyRepository, StoryPictureRepository storyPictureRepository, ProfileRepository profileRepository, StoryMapper storyMapper, AuthenticatedUserProvider authenticatedUserProvider, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, UUIDConverter uuidConverter) {
         this.storyRepository = storyRepository;
         this.storyPictureRepository = storyPictureRepository;
         this.profileRepository = profileRepository;
@@ -54,7 +50,6 @@ public class StoryServiceImpl implements StoryService {
         this.tokenGenerator = tokenGenerator;
         this.minioClient = minioClient;
         this.minioConfig = minioConfig;
-        this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
     }
 
@@ -64,7 +59,7 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         if (storyRepository.countStoriesByProfile(profile) > 15) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.limit-bad-request"));
+            throw new BadRequestException("services.story-service.methods.create-story.limit-bad-request");
         }
 
         Instant expiresAt = LocalDateTime.now().plusDays(1).toInstant(ZoneOffset.UTC);
@@ -88,15 +83,16 @@ public class StoryServiceImpl implements StoryService {
                             .contentType(mimeType)
                             .build()
             );
-        } catch (Exception error) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.story-service.methods.create-story.file-bad-request"));
+        } catch (Exception ignored) {
+            throw new FailedDependencyException();
         }
 
-        StoryPicture storyPicture = new StoryPicture();
-        storyPicture.setStory(savedStory);
-        storyPicture.setFileKey(fileKey);
-        storyPicture.setFileName(fileName);
-        storyPicture.setMimeType(mimeType);
+        StoryPicture storyPicture = StoryPicture.builder()
+                .story(savedStory)
+                .fileKey(fileKey)
+                .fileName(fileName)
+                .mimeType(mimeType)
+                .build();
 
         storyPictureRepository.save(storyPicture);
 
@@ -111,12 +107,12 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Story story = storyRepository.findByIdAndNotDeleted(uuidConverter.toUUID(storyId)).
-                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-by-id.not-found")));
+                orElseThrow(() -> new NotFoundException("services.story-service.methods.find-story-by-id.not-found"));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(story.getProfile(), profile);
 
         if (story.getProfile().isPrivate() && !mutualFollow && !profile.getId().equals(story.getProfile().getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.story-service.methods.find-story-by-id.forbidden"));
+            throw new PrivateProfileException();
         }
 
         return DefaultResponse.success(storyMapper.toDTO(story));
@@ -124,7 +120,7 @@ public class StoryServiceImpl implements StoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public DefaultResponse<List<StoryResponse>> findStoriesByAuthUser() {
+    public DefaultResponse<List<StoryResponse>> findStoriesMe() {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         List<Story> stories = storyRepository.findAllStoriesByProfile(profile);
@@ -161,16 +157,12 @@ public class StoryServiceImpl implements StoryService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile().getUser().getProfile();
 
         Story story = storyRepository.findById(uuidConverter.toUUID(storyId)).
-                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.not-found")));
+                orElseThrow(() -> new NotFoundException("services.story-service.methods.find-story-and-belongs-to-the-profile.not-found"));
 
         if (!story.getProfile().getId().equals(profile.getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.story-service.methods.find-story-and-belongs-to-the-profile.forbidden"));
+            throw new AccessDeniedException("services.story-service.methods.find-story-and-belongs-to-the-profile.forbidden");
         }
 
         return story;
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

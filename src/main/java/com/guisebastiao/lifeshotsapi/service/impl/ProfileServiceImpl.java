@@ -9,8 +9,8 @@ import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
+import com.guisebastiao.lifeshotsapi.exception.PrivateProfileException;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.mapper.ProfileMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
@@ -19,8 +19,6 @@ import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider
 import com.guisebastiao.lifeshotsapi.service.ProfileService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,16 +33,14 @@ public class ProfileServiceImpl implements ProfileService {
     private final PostRepository postRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final ProfileMapper profileMapper;
-    private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
     private final PostMapper postMapper;
 
-    public ProfileServiceImpl(ProfileRepository profileRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileMapper profileMapper, MessageSource messageSource, UUIDConverter uuidConverter, PostMapper postMapper) {
+    public ProfileServiceImpl(ProfileRepository profileRepository, PostRepository postRepository, AuthenticatedUserProvider authenticatedUserProvider, ProfileMapper profileMapper, UUIDConverter uuidConverter, PostMapper postMapper) {
         this.profileRepository = profileRepository;
         this.postRepository = postRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
         this.profileMapper = profileMapper;
-        this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
         this.postMapper = postMapper;
     }
@@ -83,12 +79,12 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Profile profile = profileRepository.findByHandle(handle)
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.profile-service.methods.find-profile-by-handle.not-found"));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
 
         if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
-            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+            throw new PrivateProfileException();
         }
 
         return DefaultResponse.success(profileMapper.toDTO(profile));
@@ -100,12 +96,12 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId)).
-                orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-service.methods.find-profile-by-id.not-found")));
+                orElseThrow(() -> new NotFoundException("services.profile-service.methods.find-profile-by-id.not-found"));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
 
         if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
-            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+            throw new PrivateProfileException();
         }
 
         return DefaultResponse.success(profileMapper.toDTO(profile));
@@ -117,12 +113,12 @@ public class ProfileServiceImpl implements ProfileService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Profile profile = profileRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-profile.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.profile-service.methods.find-posts.not-found"));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(profile, profileAuth);
 
         if (profile.isPrivate() && !mutualFollow && !profileAuth.getId().equals(profile.getId())) {
-            throw new BusinessException(BusinessHttpStatus.PRIVATE_PROFILE, getMessage("services.profile-service.methods.find-profile-by-id.forbidden"));
+            throw new PrivateProfileException();
         }
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
@@ -155,9 +151,5 @@ public class ProfileServiceImpl implements ProfileService {
         profileRepository.save(profile);
 
         return DefaultResponse.success(profileMapper.toDTO(profile));
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

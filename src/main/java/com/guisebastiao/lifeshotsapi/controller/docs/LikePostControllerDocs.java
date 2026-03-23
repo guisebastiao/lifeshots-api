@@ -3,7 +3,7 @@ package com.guisebastiao.lifeshotsapi.controller.docs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.params.PaginationParam;
 import com.guisebastiao.lifeshotsapi.dto.request.LikePostRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.LikePostResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.ProfileResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.InvalidRequestBodyResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.PagingSuccess;
@@ -24,7 +24,7 @@ import java.util.List;
 )
 public interface LikePostControllerDocs {
 
-    class LikeListSuccess extends PagingSuccess<List<LikePostResponse>> {}
+    class LikeListSuccess extends PagingSuccess<List<ProfileResponse>> {}
 
     @Operation(
             summary = "Like or unlike a post",
@@ -128,5 +128,5 @@ public interface LikePostControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<List<LikePostResponse>>> findAllLikePost(String postId, PaginationParam pagination);
+    ResponseEntity<DefaultResponse<List<ProfileResponse>>> findAllLikePost(String postId, PaginationParam pagination);
 }

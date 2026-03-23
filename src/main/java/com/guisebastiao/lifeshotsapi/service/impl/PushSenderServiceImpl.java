@@ -12,6 +12,7 @@ import org.apache.http.HttpResponse;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,16 +32,16 @@ public class PushSenderServiceImpl implements PushSenderService {
         this.pushService = pushService;
     }
 
-
     @Override
     public void sendPush(String title, String message, UUID receiverId) {
         PushDTO dto = new PushDTO(title, message, receiverId);
         this.rabbitTemplate.convertAndSend(PushQueueConfig.PUSH_EXCHANGE, PushQueueConfig.PUSH_ROUTING_KEY, dto);
     }
 
+    @Transactional
     @RabbitListener(queues = PushQueueConfig.PUSH_QUEUE)
     public void consumer(PushDTO dto) {
-        List<PushSubscription> subs = pushSubscriptionRepository.findAllByDeviceUser(dto.receiverId());
+        List<PushSubscription> subs = pushSubscriptionRepository.findAllByUserId(dto.receiverId());
 
         if (subs.isEmpty()) return;
 
@@ -48,12 +49,11 @@ public class PushSenderServiceImpl implements PushSenderService {
 
         try {
             payload = objectMapper.writeValueAsString(new PushPayload(dto.title(), dto.message()));
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return;
         }
 
         for (PushSubscription sub : subs) {
-
             try {
                 Subscription subscription = new Subscription(sub.getEndpoint(), new Subscription.Keys(sub.getP256dh(), sub.getAuth()));
 

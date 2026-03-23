@@ -7,8 +7,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.ProfilePictureResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.ProfilePicture;
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.*;
 import com.guisebastiao.lifeshotsapi.mapper.ProfilePictureMapper;
 import com.guisebastiao.lifeshotsapi.repository.ProfilePictureRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
@@ -20,8 +19,6 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
@@ -36,10 +33,9 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
     private final TokenGenerator tokenGenerator;
     private final AuthenticatedUserProvider authenticatedUserProvider;
     private final ProfilePictureMapper profilePictureMapper;
-    private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
 
-    public ProfilePictureServiceImpl(ProfilePictureRepository profilePictureRepository, ProfileRepository profileRepository, MinioClient minioClient, MinioConfig minioConfig, TokenGenerator tokenGenerator, AuthenticatedUserProvider authenticatedUserProvider, ProfilePictureMapper profilePictureMapper, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public ProfilePictureServiceImpl(ProfilePictureRepository profilePictureRepository, ProfileRepository profileRepository, MinioClient minioClient, MinioConfig minioConfig, TokenGenerator tokenGenerator, AuthenticatedUserProvider authenticatedUserProvider, ProfilePictureMapper profilePictureMapper, UUIDConverter uuidConverter) {
         this.profilePictureRepository = profilePictureRepository;
         this.profileRepository = profileRepository;
         this.minioClient = minioClient;
@@ -47,7 +43,6 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         this.tokenGenerator = tokenGenerator;
         this.authenticatedUserProvider = authenticatedUserProvider;
         this.profilePictureMapper = profilePictureMapper;
-        this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
     }
 
@@ -57,24 +52,23 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.upload-profile-picture.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.profile-picture-service.methods.upload-profile-picture.not-found "));
 
         if (profile.getProfilePicture() != null) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.profile-picture-service.methods.upload-profile-picture.conflict"));
+            throw new ConflictException("services.profile-picture-service.methods.upload-profile-picture.conflict");
         }
 
         MultipartFile file = dto.file();
 
         String fileKey = tokenGenerator.generateToken(32);
-        String fileName = file.getOriginalFilename();
         String mimeType = file.getContentType();
 
-        ProfilePicture profilePicture = new ProfilePicture();
-
-        profilePicture.setFileKey(fileKey);
-        profilePicture.setFileName(fileName);
-        profilePicture.setMimeType(mimeType);
-        profilePicture.setProfile(profile);
+        ProfilePicture profilePicture = ProfilePicture.builder()
+                .fileKey(fileKey)
+                .fileName(file.getOriginalFilename())
+                .mimeType(mimeType)
+                .profile(profile)
+                .build();
 
         ProfilePicture profilePictureSaved = profilePictureRepository.save(profilePicture);
 
@@ -87,8 +81,8 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .contentType(mimeType)
                             .build()
             );
-        } catch (Exception error) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.upload-profile-picture.bad-request"));
+        } catch (Exception ignored) {
+            throw new FailedDependencyException();
         }
 
         return DefaultResponse.success(profilePictureMapper.toDTO(profilePictureSaved));
@@ -98,7 +92,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
     @Transactional(readOnly = true)
     public DefaultResponse<ProfilePictureResponse> findProfilePictureById(String profileId) {
         ProfilePicture profilePicture = profilePictureRepository.findById(uuidConverter.toUUID(profileId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.find-profile-picture-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.profile-picture-service.methods.find-profile-picture-by-id.not-found"));
 
         return DefaultResponse.success(profilePictureMapper.toDTO(profilePicture));
     }
@@ -109,10 +103,10 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         Profile profile = profileRepository.findById(user.getProfile().getId())
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.profile-not-found")));
+                .orElseThrow(() -> new NotFoundException("services.profile-picture-service.methods.delete-profile-picture.profile-not-found"));
 
         if (profile.getProfilePicture() == null) {
-            throw new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.profile-picture-service.methods.delete-profile-picture.picture-not-found"));
+            throw new NotFoundException("services.profile-picture-service.methods.delete-profile-picture.picture-not-found");
         }
 
         try {
@@ -123,7 +117,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .build()
             );
         } catch (Exception error) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.profile-picture-service.methods.delete-profile-picture.bad-request"));
+            throw new BadRequestException("");
         }
 
         profile.setProfilePicture(null);
@@ -131,9 +125,5 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
         profileRepository.save(profile);
 
         return DefaultResponse.success();
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

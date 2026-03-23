@@ -7,20 +7,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Entity
-@Table(name = "comments")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "comments")
 public class Comment extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
-    @Column(nullable = false, length = 300)
+    @Column(name = "content", nullable = false, length = 300)
     private String content;
 
     @Column(name = "like_count", nullable = false)

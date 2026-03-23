@@ -2,7 +2,7 @@ package com.guisebastiao.lifeshotsapi.security.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.enums.BusinessCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +26,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
-        DefaultResponse<Void> responseBody = DefaultResponse.error(BusinessHttpStatus.APPLICATION_ACCESS_DENIED.getCode(), getMessage());
+        DefaultResponse<Void> responseBody = DefaultResponse.error(BusinessCode.ACCESS_DENIED.getValue(), getMessage());
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.getWriter().write(new ObjectMapper().writeValueAsString(responseBody));

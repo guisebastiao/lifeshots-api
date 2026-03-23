@@ -3,9 +3,10 @@ package com.guisebastiao.lifeshotsapi.service.impl;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LikeReplyCommentRequest;
 import com.guisebastiao.lifeshotsapi.entity.*;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
+import com.guisebastiao.lifeshotsapi.enums.Language;
 import com.guisebastiao.lifeshotsapi.enums.NotificationType;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.ConflictException;
+import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
 import com.guisebastiao.lifeshotsapi.repository.LikeReplyCommentRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationRepository;
 import com.guisebastiao.lifeshotsapi.repository.NotificationSettingRepository;
@@ -15,7 +16,6 @@ import com.guisebastiao.lifeshotsapi.service.LikeReplyCommentService;
 import com.guisebastiao.lifeshotsapi.service.PushSenderService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,15 +48,12 @@ public class LikeReplyCommentServiceImpl implements LikeReplyCommentService {
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         ReplyComment replyComment = replyCommentRepository.findByIdAndNotDeletedAndNotRemoved(uuidConverter.toUUID(replyCommentId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.like-reply-comment-service.methods.like-reply-comment.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.like-reply-comment-service.methods.like-reply-comment.not-found"));
 
         boolean alreadyLiked = likeReplyCommentRepository.existsByReplyCommentAndProfile(replyComment, profile);
 
         if (alreadyLiked == dto.like()) {
-            throw new BusinessException(BusinessHttpStatus.CONFLICT, dto.like() ?
-                    getMessage("services.like-reply-comment-service.methods.like-reply-comment.conflict-already-liked") :
-                    getMessage("services.like-reply-comment-service.methods.like-reply-comment.conflict-not-liked")
-            );
+            throw new ConflictException(dto.like() ? "services.like-reply-comment-service.methods.like-reply-comment.conflict-already-liked" : "services.like-reply-comment-service.methods.like-reply-comment.conflict-not-liked");
         }
 
         if (dto.like()) {
@@ -73,12 +70,16 @@ public class LikeReplyCommentServiceImpl implements LikeReplyCommentService {
     }
 
     private void likeComment(ReplyComment replyComment, Profile profile) {
-        LikeReplyCommentId id = new LikeReplyCommentId(profile.getId(), replyComment.getId());
+        LikeReplyCommentId id = LikeReplyCommentId.builder()
+                .replyCommentId(replyComment.getId())
+                .profileId(profile.getId())
+                .build();
 
-        LikeReplyComment like = new LikeReplyComment();
-        like.setId(id);
-        like.setProfile(profile);
-        like.setReplyComment(replyComment);
+        LikeReplyComment like = LikeReplyComment.builder()
+                .id(id)
+                .replyComment(replyComment)
+                .profile(profile)
+                .build();
 
         likeReplyCommentRepository.save(like);
 
@@ -86,8 +87,10 @@ public class LikeReplyCommentServiceImpl implements LikeReplyCommentService {
             return;
         }
 
-        String title = getMessage("messages.like-reply-comment.title");
-        String message = getMessage("messages.like-reply-comment.message", new Object[]{ profile.getUser().getHandle() });
+        Language lang = replyComment.getProfile().getUser().getUserLanguage();
+
+        String title = messageSource.getMessage("messages.like-reply-comment.title", null, lang.getLocale());
+        String message = messageSource.getMessage("messages.like-reply-comment.message", new Object[]{ profile.getUser().getHandle() }, lang.getLocale());
         User receiver = replyComment.getProfile().getUser();
 
         if (notifyUser(receiver)) {
@@ -99,30 +102,26 @@ public class LikeReplyCommentServiceImpl implements LikeReplyCommentService {
     }
 
     private void unlikeComment(ReplyComment replyComment, Profile profile) {
-        LikeReplyCommentId id = new LikeReplyCommentId(profile.getId(), replyComment.getId());
+        LikeReplyCommentId id = LikeReplyCommentId.builder()
+                .replyCommentId(replyComment.getId())
+                .profileId(profile.getId())
+                .build();
+
         likeReplyCommentRepository.findById(id).ifPresent(likeReplyCommentRepository::delete);
     }
 
     private Notification createNotification(String title, String message, Profile receiver, Profile sender) {
-        Notification notification = new Notification();
-        notification.setTitle(title);
-        notification.setMessage(message);
-        notification.setReceiver(receiver);
-        notification.setSender(sender);
-        notification.setType(NotificationType.LIKE_REPLY_COMMENT);
-        return notification;
+        return Notification.builder()
+                .title(title)
+                .message(message)
+                .receiver(receiver)
+                .sender(sender)
+                .type(NotificationType.LIKE_REPLY_COMMENT)
+                .build();
     }
 
     private boolean notifyUser(User user) {
         NotificationSetting setting = notificationSettingRepository.findByUser(user);
         return setting.isNotifyLikeReplyComment() && setting.isNotifyAllNotifications();
-    }
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
-    }
-
-    private String getMessage(String key, Object[] args) {
-        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

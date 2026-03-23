@@ -139,7 +139,7 @@ public interface StoryControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesByAuthUser();
+    ResponseEntity<DefaultResponse<List<StoryResponse>>> findStoriesMe();
 
     @Operation(
             summary = "Update story",

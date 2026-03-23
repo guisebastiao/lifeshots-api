@@ -2,6 +2,7 @@ package com.guisebastiao.lifeshotsapi.controller.docs;
 
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.DeleteAccountRequest;
+import com.guisebastiao.lifeshotsapi.dto.request.LanguageRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
@@ -20,6 +21,54 @@ import org.springframework.http.ResponseEntity;
         description = "Operations related to account management, security settings, and profile privacy."
 )
 public interface AccountControllerDocs {
+
+    @Operation(
+            summary = "Update language",
+            description = "Update the system language."
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Language updated successfully.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = SuccessResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentication required. The user must be logged in to perform this action.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "409",
+                    description = "Conflict while updating profile privacy due to business rule constraints.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "Invalid request body. One or more fields contain invalid or missing values.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = InvalidRequestBodyResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "An unexpected internal server error occurred.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)
+                    )
+            )
+    })
+    ResponseEntity<DefaultResponse<Void>> language(LanguageRequest dto);
 
     @Operation(
             summary = "Update profile privacy settings",

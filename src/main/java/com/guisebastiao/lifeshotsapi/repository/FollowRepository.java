@@ -18,9 +18,11 @@ public interface FollowRepository extends JpaRepository<Follow, FollowId> {
 
     boolean existsByFollowerAndFollowing(Profile follower, Profile following);
 
-    Page<Follow> findByFollower(Profile follower, Pageable pageable);
+    @Query("SELECT p FROM Follow f JOIN f.following p WHERE f.follower = :following")
+    Page<Profile> findByFollower(@Param("follower") Profile follower, Pageable pageable);
 
-    Page<Follow> findByFollowing(Profile following, Pageable pageable);
+    @Query("SELECT p FROM Follow f JOIN f.follower p WHERE f.following = :following")
+    Page<Profile> findByFollowing(@Param("following") Profile following, Pageable pageable);
 
     Optional<Follow> findByFollowingAndFollower(Profile following, Profile follower);
 

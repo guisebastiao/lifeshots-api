@@ -5,16 +5,18 @@ import lombok.*;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "notification_settings")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "notification_settings")
 public class NotificationSetting extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
+    @GeneratedValue
+    @Column(name = "id", unique = true, nullable = false, updatable = false)
     private UUID id;
 
     @OneToOne

@@ -1,7 +1,6 @@
 package com.guisebastiao.lifeshotsapi.util;
 
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
+import com.guisebastiao.lifeshotsapi.exception.BadRequestException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
@@ -21,7 +20,7 @@ public class UUIDConverter {
         try {
             return UUID.fromString(id);
         } catch (Exception e) {
-            throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage());
+            throw new BadRequestException("util.uuid-converter.invalid-id");
         }
     }
 

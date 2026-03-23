@@ -6,12 +6,12 @@ import jakarta.validation.constraints.NotNull;
 
 public record PaginationParam(
 
-        @NotNull(message = "{validation.pagination-filter.offset.not-null}")
-        @Min(value = 1, message = "{validation.pagination-filter.offset.min}")
+        @NotNull
+        @Min(value = 1)
         Integer offset,
 
-        @NotNull(message = "{validation.pagination-filter.limit.not-null}")
-        @Min(value = 1, message = "{validation.pagination-filter.limit.min}")
-        @Max(value = 50, message = "{validation.pagination-filter.limit.max}")
+        @NotNull
+        @Min(value = 1)
+        @Max(value = 50)
         Integer limit
 ) {}

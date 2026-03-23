@@ -1,10 +1,7 @@
 package com.guisebastiao.lifeshotsapi.security.handler;
 
-import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
-import com.guisebastiao.lifeshotsapi.dto.response.RoleResponse;
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
-import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
 import com.guisebastiao.lifeshotsapi.security.services.RefreshTokenService;
@@ -22,7 +19,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.UUID;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -30,7 +26,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
-    private final UserMapper userMapper;
     private final Environment environment;
 
     @Value("${cookie.access-token.name}")
@@ -39,17 +34,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${cookie.refresh-token.name}")
     private String cookieRefreshTokenName;
 
-    @Value("${cookie.device-id.name}")
-    private String cookieDeviceIdName;
-
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, Environment environment) {
+    public OAuth2SuccessHandler(UserRepository userRepository, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, Environment environment) {
         this.userRepository = userRepository;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
-        this.userMapper = userMapper;
         this.environment = environment;
     }
 
@@ -73,29 +64,21 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
 
             String accessToken = accessTokenService.createAccessToken(user);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-            loginAndCreateAllCookies(response, accessToken, refreshToken.getRefreshToken().toString(), refreshToken.getDevice().getId());
+            createCookie(response, cookieAccessTokenName, accessToken);
+            createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString());
 
-            redirectWithSuccess(response, userMapper.authDTO(user));
+            redirectWithSuccess(response);
         } catch (Exception ex) {
             redirectWithError(response, "oauth_internal_error");
         }
     }
 
-    private void redirectWithSuccess(HttpServletResponse response, AuthResponse dto) throws IOException {
+    private void redirectWithSuccess(HttpServletResponse response) throws IOException {
         String redirectUrl = UriComponentsBuilder
                 .fromUriString(frontendUrl)
                 .path("/oauth/success")
-                .queryParam("id", dto.id())
-                .queryParam("handle", dto.handle())
-                .queryParam(
-                        "roles",
-                        dto.roles()
-                                .stream()
-                                .map(RoleResponse::roleName)
-                                .toList()
-                )
                 .build()
                 .encode()
                 .toUriString();
@@ -129,15 +112,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.sendRedirect(redirectUrl);
     }
 
-    private void loginAndCreateAllCookies(HttpServletResponse response, String accessToken, String refreshToken, UUID deviceId) {
-        generateCookie(response, cookieAccessTokenName, accessToken);
-        generateCookie(response, cookieRefreshTokenName, refreshToken);
-        generateCookie(response, cookieDeviceIdName, deviceId.toString());
-    }
-
-    private void generateCookie(HttpServletResponse response, String cookieName, String value) {
+    private void createCookie(HttpServletResponse response, String cookieName, String value) {
         boolean secure = isProduction();
-        ResponseCookie cookie = ResponseCookie.from(cookieName, value).httpOnly(true).secure(secure).path("/").sameSite("Lax").build();
+
+        ResponseCookie cookie = ResponseCookie.from(cookieName, value)
+                .httpOnly(true)
+                .secure(secure)
+                .path("/")
+                .sameSite("Lax")
+                .build();
+
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 

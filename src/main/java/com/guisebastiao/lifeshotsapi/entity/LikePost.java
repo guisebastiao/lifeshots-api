@@ -3,12 +3,13 @@ package com.guisebastiao.lifeshotsapi.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
-@Table(name = "like_posts")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "like_posts")
 public class LikePost extends Auditable {
 
     @EmbeddedId

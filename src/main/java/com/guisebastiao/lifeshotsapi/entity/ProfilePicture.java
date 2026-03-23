@@ -5,16 +5,17 @@ import lombok.*;
 
 import java.util.UUID;
 
-@Entity
-@Table(name = "profile_pictures")
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "profile_pictures")
 public class ProfilePicture extends Auditable {
 
     @Id
-    @EqualsAndHashCode.Include
+    @GeneratedValue
     private UUID id;
 
     @OneToOne

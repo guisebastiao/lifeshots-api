@@ -4,13 +4,12 @@ import com.guisebastiao.lifeshotsapi.config.MinioConfig;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.PostRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.PostUpdateRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.FieldErrorResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.PostResponse;
 import com.guisebastiao.lifeshotsapi.entity.Post;
 import com.guisebastiao.lifeshotsapi.entity.PostPicture;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
-import com.guisebastiao.lifeshotsapi.enums.BusinessHttpStatus;
-import com.guisebastiao.lifeshotsapi.exception.BusinessException;
-import com.guisebastiao.lifeshotsapi.exception.BusinessValidationException;
+import com.guisebastiao.lifeshotsapi.exception.*;
 import com.guisebastiao.lifeshotsapi.mapper.PostMapper;
 import com.guisebastiao.lifeshotsapi.repository.PostRepository;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
@@ -22,8 +21,6 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,10 +38,9 @@ public class PostServiceImpl implements PostService {
     private final TokenGenerator tokenGenerator;
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
-    private final MessageSource messageSource;
     private final UUIDConverter uuidConverter;
 
-    public PostServiceImpl(PostRepository postRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, PostMapper postMapper, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, MessageSource messageSource, UUIDConverter uuidConverter) {
+    public PostServiceImpl(PostRepository postRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, PostMapper postMapper, TokenGenerator tokenGenerator, MinioClient minioClient, MinioConfig minioConfig, UUIDConverter uuidConverter) {
         this.postRepository = postRepository;
         this.profileRepository = profileRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
@@ -52,7 +48,6 @@ public class PostServiceImpl implements PostService {
         this.tokenGenerator = tokenGenerator;
         this.minioClient = minioClient;
         this.minioConfig = minioConfig;
-        this.messageSource = messageSource;
         this.uuidConverter = uuidConverter;
     }
 
@@ -82,12 +77,12 @@ public class PostServiceImpl implements PostService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-by-id.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.post-service.methods.find-post-by-id.not-found"));
 
         boolean mutualFollow = profileRepository.profilesFollowEachOther(post.getProfile(), profileAuth);
 
         if (post.getProfile().isPrivate() && !mutualFollow && !profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.post-service.methods.find-post-by-id.forbidden"));
+            throw new PrivateProfileException();
         }
 
         return DefaultResponse.success(postMapper.toDTO(post));
@@ -104,11 +99,13 @@ public class PostServiceImpl implements PostService {
         int totalPictures = post.getPostPictures().size() - removeFiles.size() + newFiles.size();
 
         if (totalPictures > 10) {
-            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "newFiles", getMessage("services.post-service.methods.update-post.bad-request-max-pictures"));
+            FieldErrorResponse error = new FieldErrorResponse("newFiles", "services.post-service.methods.update-post.bad-request-max-pictures");
+            throw new ValidationException(error);
         }
 
         if (totalPictures <= 0) {
-            throw new BusinessValidationException(BusinessHttpStatus.VALIDATION_ERROR, "removeFiles", getMessage("services.post-service.methods.update-post.bad-request-min-pictures"));
+            FieldErrorResponse error = new FieldErrorResponse("removeFiles", "services.post-service.methods.update-post.bad-request-min-pictures");
+            throw new ValidationException(error);
         }
 
         if (!removeFiles.isEmpty()) {
@@ -117,7 +114,7 @@ public class PostServiceImpl implements PostService {
                     .toList();
 
             if (postPictures.size() != removeFiles.size()) {
-                throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.update-post.bad-request-invalid-pictures"));
+                throw new BadRequestException("services.post-service.methods.update-post.bad-request-invalid-pictures");
             }
 
             postPictures.forEach(postPicture -> {
@@ -128,8 +125,8 @@ public class PostServiceImpl implements PostService {
                                     .object(minioConfig.getPostPicturesFolder() + postPicture.getFileKey())
                                     .build()
                     );
-                } catch (Exception error) {
-                    throw new BusinessException(BusinessHttpStatus.INTERNAL_SERVER_ERROR, getMessage("services.post-service.methods.update-post.internal-server-error"));
+                } catch (Exception ignored) {
+                    throw new FailedDependencyException();
                 }
             });
 
@@ -167,10 +164,10 @@ public class PostServiceImpl implements PostService {
         Profile profileAuth = authenticatedUserProvider.getAuthenticatedUser().getProfile();
 
         Post post = postRepository.findByIdAndNotDeleted(uuidConverter.toUUID(postId))
-                .orElseThrow(() -> new BusinessException(BusinessHttpStatus.NOT_FOUND, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.not-found")));
+                .orElseThrow(() -> new NotFoundException("services.post-service.methods.find-post-and-belongs-to-the-profile.not-found"));
 
         if (!profileAuth.getId().equals(post.getProfile().getId())) {
-            throw new BusinessException(BusinessHttpStatus.ACCESS_DENIED, getMessage("services.post-service.methods.find-post-and-belongs-to-the-profile.forbidden"));
+            throw new AccessDeniedException("services.post-service.methods.find-post-and-belongs-to-the-profile.forbidden");
         }
 
         return post;
@@ -193,8 +190,8 @@ public class PostServiceImpl implements PostService {
                                         .contentType(mimeType)
                                         .build()
                         );
-                    } catch (Exception error) {
-                        throw new BusinessException(BusinessHttpStatus.BAD_REQUEST, getMessage("services.post-service.methods.generate-pos-pictures.bad-request"));
+                    } catch (Exception ignored) {
+                        throw new FailedDependencyException();
                     }
 
                     PostPicture picture = new PostPicture();
@@ -207,8 +204,4 @@ public class PostServiceImpl implements PostService {
                 })
                 .toList();
     };
-
-    private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
-    }
 }
