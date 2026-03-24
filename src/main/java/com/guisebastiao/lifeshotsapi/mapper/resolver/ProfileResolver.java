@@ -20,19 +20,14 @@ public class ProfileResolver {
 
     @Named("resolveGetHandle")
     public String resolveGetHandle(Profile profile) {
-        if (profile == null) {
-            return null;
-        }
-
+        if (profile == null) return null;
         return profile.getUser().getHandle();
     }
 
     @Named("resolveIsOwnProfile")
     public boolean resolveIsOwnProfile(Profile profile) {
         if (profile == null) return false;
-
         User authUser = authenticatedUserProvider.getAuthenticatedUser();
-
         return profile.getUser().getId().equals(authUser.getProfile().getId());
     }
 

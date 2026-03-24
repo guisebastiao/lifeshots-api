@@ -117,7 +117,7 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                             .build()
             );
         } catch (Exception error) {
-            throw new BadRequestException("");
+            throw new FailedDependencyException();
         }
 
         profile.setProfilePicture(null);

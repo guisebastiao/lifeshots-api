@@ -21,7 +21,6 @@ public class CommentResolver {
     @Named("resolveIsOwner")
     public boolean resolveIsOwner(Comment comment) {
         if (comment == null || comment.getProfile() == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return comment.getProfile().getId().equals(profile.getId());
     }
@@ -29,7 +28,6 @@ public class CommentResolver {
     @Named("resolveIsLiked")
     public boolean resolveIsLiked(Comment comment) {
         if (comment == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return likeCommentRepository.existsByCommentAndProfile(comment, profile);
     }

@@ -21,7 +21,6 @@ public class StoryResolver {
     @Named("resolveIsOwner")
     public boolean resolveIsOwner(Story story) {
         if (story == null || story.getProfile() == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return story.getProfile().getId().equals(profile.getId());
     }
@@ -29,7 +28,6 @@ public class StoryResolver {
     @Named("resolveIsLiked")
     public boolean resolveIsLiked(Story story) {
         if (story == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return likeStoryRepository.existsByStoryAndProfile(story, profile);
     }

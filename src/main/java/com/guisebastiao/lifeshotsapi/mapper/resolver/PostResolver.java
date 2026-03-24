@@ -21,7 +21,6 @@ public class PostResolver {
     @Named("resolveIsOwner")
     public boolean resolveIsOwner(Post post) {
         if (post == null || post.getProfile() == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return post.getProfile().getId().equals(profile.getId());
     }
@@ -29,7 +28,6 @@ public class PostResolver {
     @Named("resolveIsLiked")
     public boolean resolveIsLiked(Post post) {
         if (post == null) return false;
-
         Profile profile = authenticatedUserProvider.getAuthenticatedUser().getProfile();
         return likePostRepository.existsByPostAndProfile(post, profile);
     }
