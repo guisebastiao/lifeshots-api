@@ -27,13 +27,13 @@ public class NotificationController implements NotificationControllerDocs {
 
     @Override
     @GetMapping
-    public ResponseEntity<DefaultResponse<List<NotificationResponse>>> findAllNotificationsByUser(NotificationParam param, @Valid PaginationParam pagination) {
+    public ResponseEntity<DefaultResponse<List<NotificationResponse>>> findAllNotificationsByUser(@Valid NotificationParam param, @Valid PaginationParam pagination) {
         DefaultResponse<List<NotificationResponse>> data = notificationService.findAllNotificationsByUser(param, pagination);
         return ResponseEntity.status(HttpStatus.OK).body(data);
     }
 
     @Override
-    @GetMapping("/unread-count")
+    @GetMapping("/unread")
     public ResponseEntity<DefaultResponse<UnreadResponse>> findUnreadNotificationsByUser() {
         DefaultResponse<UnreadResponse> data = notificationService.findUnreadNotificationsByUser();
         return ResponseEntity.status(HttpStatus.OK).body(data);

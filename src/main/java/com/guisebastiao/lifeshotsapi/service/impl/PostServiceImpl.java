@@ -99,13 +99,13 @@ public class PostServiceImpl implements PostService {
         int totalPictures = post.getPostPictures().size() - removeFiles.size() + newFiles.size();
 
         if (totalPictures > 10) {
-            FieldErrorResponse error = new FieldErrorResponse("newFiles", "services.post-service.methods.update-post.bad-request-max-pictures");
-            throw new ValidationException(error);
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("newFiles", "services.post-service.methods.update-post.bad-request-max-pictures"));
+            throw new ValidationException(errors);
         }
 
         if (totalPictures <= 0) {
-            FieldErrorResponse error = new FieldErrorResponse("removeFiles", "services.post-service.methods.update-post.bad-request-min-pictures");
-            throw new ValidationException(error);
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("removeFiles", "services.post-service.methods.update-post.bad-request-min-pictures"));
+            throw new ValidationException(errors);
         }
 
         if (!removeFiles.isEmpty()) {

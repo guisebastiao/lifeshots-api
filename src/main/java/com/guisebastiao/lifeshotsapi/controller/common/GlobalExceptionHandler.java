@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -46,7 +47,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<DefaultResponse<Void>> handleValidationException(ValidationException e) {
-        DefaultResponse<Void> response = DefaultResponse.error(BusinessCode.VALIDATION_ERROR.getValue(), getMessage("validation.error.message"), e.getDetails());
+        List<FieldErrorResponse> errors = e.getDetails().stream()
+                .map(fe -> new FieldErrorResponse(fe.field(), getMessage(fe.error())))
+                .toList();
+
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessCode.VALIDATION_ERROR.getValue(), getMessage("validation.error.message"), errors);
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(response);
     }
 
@@ -105,6 +110,12 @@ public class GlobalExceptionHandler {
         List<FieldErrorResponse> fieldErrors = List.of(new FieldErrorResponse("email", e.getMessage()));
         DefaultResponse<Void> response = DefaultResponse.error(BusinessCode.VALIDATION_ERROR.getValue(), getMessage("validation.error.message"), fieldErrors);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<DefaultResponse<Void>> handleDisabledException(DisabledException e) {
+        DefaultResponse<Void> response = DefaultResponse.error(BusinessCode.ACCOUNT_DISABLED.getValue(), getMessage("global-exception-handler.disabled-exception"));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

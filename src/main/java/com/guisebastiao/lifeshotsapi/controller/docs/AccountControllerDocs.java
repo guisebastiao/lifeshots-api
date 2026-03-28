@@ -116,7 +116,7 @@ public interface AccountControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<Void>> setProfilePrivacy(ProfilePrivacyRequest dto);
+    ResponseEntity<DefaultResponse<Void>> profilePrivacy(ProfilePrivacyRequest dto);
 
 
     @Operation(

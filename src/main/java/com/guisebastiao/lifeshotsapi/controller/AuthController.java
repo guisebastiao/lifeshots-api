@@ -1,10 +1,10 @@
 package com.guisebastiao.lifeshotsapi.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.guisebastiao.lifeshotsapi.controller.docs.AuthControllerDocs;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,8 +27,8 @@ public class AuthController implements AuthControllerDocs {
 
     @Override
     @PostMapping("/login")
-    public ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody @Valid LoginRequest dto) {
-        DefaultResponse<AuthResponse> response = authService.login(httpRequest, httpResponse,  dto);
+    public ResponseEntity<DefaultResponse<Void>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody @Valid LoginRequest dto) throws JsonProcessingException {
+        DefaultResponse<Void> response = authService.login(httpRequest, httpResponse,  dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
@@ -40,15 +40,15 @@ public class AuthController implements AuthControllerDocs {
 
     @Override
     @PostMapping("/register")
-    public ResponseEntity<DefaultResponse<AuthResponse>> register(@RequestBody @Valid RegisterRequest dto) {
-        DefaultResponse<AuthResponse> response = authService.register(dto);
+    public ResponseEntity<DefaultResponse<Void>> register(@RequestBody @Valid RegisterRequest dto) {
+        DefaultResponse<Void> response = authService.register(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Override
     @PostMapping("/refresh")
-    public ResponseEntity<DefaultResponse<AuthResponse>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        DefaultResponse<AuthResponse> response = authService.refresh(httpRequest, httpResponse);
+    public ResponseEntity<DefaultResponse<Void>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws JsonProcessingException {
+        DefaultResponse<Void> response = authService.refresh(httpRequest, httpResponse);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

@@ -1,10 +1,9 @@
 package com.guisebastiao.lifeshotsapi.controller.docs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
-import com.guisebastiao.lifeshotsapi.dto.swagger.DataSuccess;
 import com.guisebastiao.lifeshotsapi.dto.swagger.ErrorResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.InvalidRequestBodyResponse;
 import com.guisebastiao.lifeshotsapi.dto.swagger.SuccessResponse;
@@ -26,8 +25,6 @@ import java.io.IOException;
 )
 public interface AuthControllerDocs {
 
-    class AuthSuccess extends DataSuccess<AuthResponse> {}
-
     @Operation(
             summary = "Authenticate user",
             description = "Authenticates a user using email and password credentials. If the credentials are valid, an access token is issued and authentication cookies are set when applicable."
@@ -38,7 +35,7 @@ public interface AuthControllerDocs {
                     description = "Authentication successful. Access token and user information returned.",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = AuthSuccess.class)
+                            schema = @Schema(implementation = SuccessResponse.class)
                     )
             ),
             @ApiResponse(
@@ -66,7 +63,7 @@ public interface AuthControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<AuthResponse>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, LoginRequest dto);
+    ResponseEntity<DefaultResponse<Void>> login(HttpServletRequest httpRequest, HttpServletResponse httpResponse, LoginRequest dto) throws JsonProcessingException;
 
 
     @Operation(
@@ -92,7 +89,7 @@ public interface AuthControllerDocs {
                     description = "User registered successfully.",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(implementation = AuthSuccess.class)
+                            schema = @Schema(implementation = SuccessResponse.class)
                     )
             ),
             @ApiResponse(
@@ -129,7 +126,7 @@ public interface AuthControllerDocs {
             )
 
     })
-    ResponseEntity<DefaultResponse<AuthResponse>> register(RegisterRequest dto);
+    ResponseEntity<DefaultResponse<Void>> register(RegisterRequest dto);
 
     @Operation(
             summary = "Refresh authentication token",
@@ -161,7 +158,7 @@ public interface AuthControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<AuthResponse>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse);
+    ResponseEntity<DefaultResponse<Void>> refresh(HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws JsonProcessingException;
 
     @Operation(
             summary = "Logout user",

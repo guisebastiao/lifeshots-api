@@ -8,6 +8,7 @@ import com.guisebastiao.lifeshotsapi.dto.response.NotificationResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.UnreadResponse;
 import com.guisebastiao.lifeshotsapi.entity.Notification;
 import com.guisebastiao.lifeshotsapi.entity.User;
+import com.guisebastiao.lifeshotsapi.enums.ReadType;
 import com.guisebastiao.lifeshotsapi.exception.AccessDeniedException;
 import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
 import com.guisebastiao.lifeshotsapi.mapper.NotificationMapper;
@@ -45,7 +46,9 @@ public class NotificationServiceImpl implements NotificationService {
 
         Pageable pageable = PageRequest.of(pagination.offset() - 1, pagination.limit());
 
-        Page<Notification> resultPage = notificationRepository.findAllNotificationsByUserId(user.getProfile().getId(), param.read(), pageable);
+        Boolean searchParam = param.filter() == null ? null : param.filter().toUpperCase().trim().equals(ReadType.READ.toString());
+
+        Page<Notification> resultPage = notificationRepository.findAllNotificationsByUserId(user.getProfile().getId(), searchParam, pageable);
 
         DefaultResponse.Meta meta = DefaultResponse.Meta.builder()
                 .totalItems(resultPage.getTotalElements())

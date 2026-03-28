@@ -16,8 +16,8 @@ import java.util.UUID;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
 
-    @Query("SELECT rt FROM RefreshToken rt WHERE rt.refreshToken = :refreshToken AND rt.user = :user")
-    Optional<RefreshToken> findByRefreshTokenAndUser(@Param("refreshToken") UUID refreshToken, @Param("user") User user);
+    @Query("SELECT rt FROM RefreshToken rt WHERE rt.refreshToken = :refreshToken")
+    Optional<RefreshToken> findByRefreshToken(@Param("refreshToken") UUID refreshToken);
 
     @Modifying
     @Transactional

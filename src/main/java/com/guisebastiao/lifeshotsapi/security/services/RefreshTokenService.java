@@ -62,15 +62,13 @@ public class RefreshTokenService {
 
     @Transactional
     public RefreshToken validateRefreshToken(HttpServletRequest request, HttpServletResponse response) {
-        User user = authenticatedUserProvider.getAuthenticatedUser();
-
         String refreshToken = getCookie(request, cookieRefreshTokenName).orElse(null);
 
         if (refreshToken == null) {
-            throw new UnauthorizedException("security.refresh-token-service.validate-refresh-token.not-found-refresh-token");
+            throw new UnauthorizedException();
         }
 
-        RefreshToken token = refreshTokenRepository.findByRefreshTokenAndUser(uuidConverter.toUUID(refreshToken), user)
+        RefreshToken token = refreshTokenRepository.findByRefreshToken(uuidConverter.toUUID(refreshToken))
                 .orElseThrow(UnauthorizedException::new);
 
         if (token.getExpiresAt().isBefore(Instant.now())) {

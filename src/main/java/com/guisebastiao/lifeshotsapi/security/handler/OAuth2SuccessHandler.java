@@ -1,6 +1,9 @@
 package com.guisebastiao.lifeshotsapi.security.handler;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.guisebastiao.lifeshotsapi.dto.response.SessionResponse;
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
+import com.guisebastiao.lifeshotsapi.entity.Role;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 
 @Component
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -33,6 +38,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${cookie.refresh-token.name}")
     private String cookieRefreshTokenName;
+
+    @Value("${cookie.session.name}")
+    private String cookieSessionName;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -66,8 +74,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             String accessToken = accessTokenService.createAccessToken(user);
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-            createCookie(response, cookieAccessTokenName, accessToken);
-            createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString());
+            List<String> roles = user.getRoles().stream().map(Role::getRoleName).toList();
+
+            String session = new ObjectMapper().writeValueAsString(new SessionResponse(
+                    true,
+                    new SessionResponse.User(user.getId(), user.getHandle(), roles)
+            ));
+
+            createCookie(response, cookieAccessTokenName, accessToken, true);
+            createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString(), true);
+            createCookie(response, cookieSessionName, encode(session), false);
 
             redirectWithSuccess(response);
         } catch (Exception ex) {
@@ -112,17 +128,21 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         response.sendRedirect(redirectUrl);
     }
 
-    private void createCookie(HttpServletResponse response, String cookieName, String value) {
+    private void createCookie(HttpServletResponse response, String cookieName, String value, boolean httpOnly) {
         boolean secure = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, value)
-                .httpOnly(true)
+                .httpOnly(httpOnly)
                 .secure(secure)
                 .path("/")
                 .sameSite("Lax")
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private String encode(String value) {
+        return Base64.getUrlEncoder().encodeToString(value.getBytes());
     }
 
     private boolean isProduction() {

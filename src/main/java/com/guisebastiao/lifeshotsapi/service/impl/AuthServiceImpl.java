@@ -1,15 +1,17 @@
 package com.guisebastiao.lifeshotsapi.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.dto.DefaultResponse;
 import com.guisebastiao.lifeshotsapi.dto.request.LoginRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.RegisterRequest;
-import com.guisebastiao.lifeshotsapi.dto.response.AuthResponse;
 import com.guisebastiao.lifeshotsapi.dto.response.FieldErrorResponse;
+import com.guisebastiao.lifeshotsapi.dto.response.SessionResponse;
 import com.guisebastiao.lifeshotsapi.entity.*;
 import com.guisebastiao.lifeshotsapi.enums.Language;
 import com.guisebastiao.lifeshotsapi.exception.NotFoundException;
 import com.guisebastiao.lifeshotsapi.exception.ValidationException;
-import com.guisebastiao.lifeshotsapi.mapper.AuthMapper;
+import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.RoleRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;
@@ -29,9 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -43,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
     private final Environment environment;
-    private final AuthMapper authMapper;
+    private final UserMapper userMapper;
 
     @Value("${cookie.access-token.name}")
     private String cookieAccessTokenName;
@@ -51,20 +51,23 @@ public class AuthServiceImpl implements AuthService {
     @Value("${cookie.refresh-token.name}")
     private String cookieRefreshTokenName;
 
-    public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, AuthMapper authMapper, Environment environment) {
+    @Value("${cookie.session.name}")
+    private String cookieSessionName;
+
+    public AuthServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, AccessTokenService accessTokenService, RefreshTokenService refreshTokenService, UserMapper userMapper, Environment environment) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
-        this.authMapper = authMapper;
+        this.userMapper = userMapper;
         this.environment = environment;
     }
 
     @Override
     @Transactional
-    public DefaultResponse<AuthResponse> login(HttpServletRequest request, HttpServletResponse response, LoginRequest dto) {
+    public DefaultResponse<Void> login(HttpServletRequest request, HttpServletResponse response, LoginRequest dto) throws JsonProcessingException {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(dto.email(), dto.password()));
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -73,33 +76,42 @@ public class AuthServiceImpl implements AuthService {
         String accessToken = accessTokenService.createAccessToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-        createCookie(response, cookieAccessTokenName, accessToken);
-        createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString());
+        List<String> roles = user.getRoles().stream().map(Role::getRoleName).toList();
 
-        return DefaultResponse.success(authMapper.authDTO(user));
+        String session = new ObjectMapper().writeValueAsString(new SessionResponse(
+                true,
+                new SessionResponse.User(user.getId(), user.getHandle(), roles)
+        ));
+
+        createCookie(response, cookieAccessTokenName, accessToken, true);
+        createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString(), true);
+        createCookie(response, cookieSessionName, encode(session), false);
+
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
-    public DefaultResponse<AuthResponse> register(RegisterRequest dto) {
+    public DefaultResponse<Void> register(RegisterRequest dto) {
         Optional<User> existsUser = userRepository.findByEmail(dto.email());
 
         if (existsUser.isPresent()) {
-            FieldErrorResponse fieldError = new FieldErrorResponse("email", "services.auth-service.methods.register.conflict-email");
-            throw new ValidationException(fieldError);
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("email", "services.auth-service.methods.register.conflict-email"));
+            throw new ValidationException(errors);
         }
 
         if (userRepository.existsUserByHandle(dto.handle())) {
-            FieldErrorResponse fieldError = new FieldErrorResponse("handle", "services.auth-service.methods.register.conflict-handle");
-            throw new ValidationException(fieldError);
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("handle", "services.auth-service.methods.register.conflict-handle"));
+            throw new ValidationException(errors);
         }
 
         Role userRole = roleRepository.findByRoleName("USER")
                 .orElseThrow(() -> new NotFoundException("services.auth-service.methods.register.role-not-found"));
 
         NotificationSetting setting = NotificationSetting.builder().build();
+        setting.enableAllNotifications();
 
-        User user = authMapper.toEntity(dto);
+        User user = userMapper.toEntity(dto);
         user.setUserLanguage(Language.PT_BR);
         user.setPassword(passwordEncoder.encode(dto.password()));
         user.setRoles(Set.of(userRole));
@@ -113,45 +125,73 @@ public class AuthServiceImpl implements AuthService {
         user.setNotificationSetting(setting);
         setting.setUser(user);
 
-        User savedUser = userRepository.save(user);
+        userRepository.save(user);
 
-        return DefaultResponse.success(authMapper.authDTO(savedUser));
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
-    public DefaultResponse<AuthResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
+    public DefaultResponse<Void> refresh(HttpServletRequest request, HttpServletResponse response) throws JsonProcessingException {
         RefreshToken refreshToken = refreshTokenService.validateRefreshToken(request, response);
 
         User user = refreshToken.getUser();
 
         String accessToken = accessTokenService.createAccessToken(user);
 
-        createCookie(response, cookieAccessTokenName, accessToken);
-        createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString());
+        List<String> roles = user.getRoles().stream().map(Role::getRoleName).toList();
 
-        return DefaultResponse.success(authMapper.authDTO(user));
+        String session = new ObjectMapper().writeValueAsString(new SessionResponse(
+                true,
+                new SessionResponse.User(user.getId(), user.getHandle(), roles)
+        ));
+
+        createCookie(response, cookieAccessTokenName, accessToken, true);
+        createCookie(response, cookieRefreshTokenName, refreshToken.getRefreshToken().toString(), true);
+        createCookie(response, cookieSessionName, encode(session), false);
+
+        return DefaultResponse.success();
     }
 
     @Override
     @Transactional
     public DefaultResponse<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         refreshTokenService.deleteRefreshToken(request);
-        removeCookie(response, cookieAccessTokenName);
-        removeCookie(response, cookieRefreshTokenName);
+        removeCookie(response, cookieAccessTokenName, true);
+        removeCookie(response, cookieRefreshTokenName, true);
+        removeCookie(response, cookieSessionName, false);
         return DefaultResponse.success();
     }
 
-    private void createCookie(HttpServletResponse response, String cookieName, String value) {
+    private void createCookie(HttpServletResponse response, String cookieName, String value, boolean httpOnly) {
         boolean secure = isProduction();
-        ResponseCookie cookie = ResponseCookie.from(cookieName, value).httpOnly(true).secure(secure).path("/").sameSite("Lax").build();
+
+        ResponseCookie cookie = ResponseCookie.from(cookieName, value)
+                .httpOnly(httpOnly)
+                .secure(secure)
+                .path("/")
+                .sameSite("Lax")
+                .build();
+
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
-    private void removeCookie(HttpServletResponse response, String cookieName) {
+    private void removeCookie(HttpServletResponse response, String cookieName, boolean httpOnly) {
         boolean secure = isProduction();
-        ResponseCookie cookie = ResponseCookie.from(cookieName, "").httpOnly(true).secure(secure).path("/").sameSite("Lax").maxAge(0).build();
+
+        ResponseCookie cookie = ResponseCookie.from(cookieName, "")
+                .httpOnly(httpOnly)
+                .secure(secure)
+                .path("/")
+                .sameSite("Lax")
+                .maxAge(0)
+                .build();
+
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private String encode(String value) {
+        return Base64.getUrlEncoder().encodeToString(value.getBytes());
     }
 
     private boolean isProduction() {

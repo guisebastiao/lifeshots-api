@@ -5,9 +5,9 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum FollowType {
-    FOLLOWERS("FOLLOWERS"),
-    FOLLOWING("FOLLOWING");
+public enum ReadType {
+    READ("READ"),
+    UNREAD("UNREAD");
 
     private final String value;
 }

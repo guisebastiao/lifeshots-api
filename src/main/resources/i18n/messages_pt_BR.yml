@@ -205,6 +205,7 @@ global-exception-handler:
   unauthorized-exception: Por favor, faça login para acessar este recurso.
   failed-dependency-exception: A operação não pôde ser concluída devido a uma falha em uma dependência externa ou etapa anterior.
   private-profile-exception: Perfil privado. Você não tem permissão para acessar este conteúdo.
+  disabled-exception: Sua conta está desativa, entre com suporte para ativa-la novamente.
   session-expired-exception: Sua sessão expirou. Por favor, faça login novamente.
   internal-server-error: Ocorreu um erro inesperado. Por favor, tente novamente mais tarde.
 

@@ -205,6 +205,7 @@ global-exception-handler:
   unauthorized-exception: Please log in to access this feature.
   failed-dependency-exception: The operation could not be completed due to a failure in an external dependency or earlier step.
   private-profile-exception: Private profile. You do not have permission to access this content.
+  disabled-exception: Your account is deactivated. Please contact support to reactivate it.
   session-expired-exception: Your session has expired. Please log in again.
   internal-server-error: An unexpected error occurred. Please try again later.
 

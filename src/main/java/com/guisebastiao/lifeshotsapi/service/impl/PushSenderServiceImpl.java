@@ -35,7 +35,7 @@ public class PushSenderServiceImpl implements PushSenderService {
     @Override
     public void sendPush(String title, String message, UUID receiverId) {
         PushDTO dto = new PushDTO(title, message, receiverId);
-        this.rabbitTemplate.convertAndSend(PushQueueConfig.PUSH_EXCHANGE, PushQueueConfig.PUSH_ROUTING_KEY, dto);
+        rabbitTemplate.convertAndSend(PushQueueConfig.PUSH_EXCHANGE, PushQueueConfig.PUSH_ROUTING_KEY, dto);
     }
 
     @Transactional

@@ -105,8 +105,8 @@ cookie:
     name: ${COOKIE_ACCESS_TOKEN_NAME}
   refresh-token:
     name: ${COOKIE_REFRESH_TOKEN_NAME}
-  device-id:
-    name: ${COOKIE_DEVICE_ID_NAME}
+  session:
+    name: ${COOKIE_SESSION_NAME}
 
 minio:
   url: ${MINIO_URL}

@@ -7,8 +7,4 @@ public class AccessDeniedException extends BusinessException {
     public AccessDeniedException(String messageKey) {
         super(HttpStatus.FORBIDDEN, messageKey, BusinessCode.ACCESS_DENIED);
     }
-
-    public AccessDeniedException(String messageKey, Object details) {
-        super(HttpStatus.FORBIDDEN, messageKey, BusinessCode.ACCESS_DENIED, details);
-    }
 }

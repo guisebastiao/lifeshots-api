@@ -7,8 +7,4 @@ public class SessionExpiredException extends BusinessException {
     public SessionExpiredException() {
         super(HttpStatus.UNAUTHORIZED, "global-exception-handler.session-expired-exception", BusinessCode.SESSION_EXPIRED);
     }
-
-    public SessionExpiredException(Object details) {
-        super(HttpStatus.UNAUTHORIZED, "global-exception-handler.session-expired-exception", BusinessCode.SESSION_EXPIRED, details);
-    }
 }

@@ -30,7 +30,7 @@ public class AccountController implements AccountControllerDocs {
 
     @Override
     @PatchMapping("/privacy")
-    public ResponseEntity<DefaultResponse<Void>> setProfilePrivacy(@Valid @RequestBody ProfilePrivacyRequest dto) {
+    public ResponseEntity<DefaultResponse<Void>> profilePrivacy(@Valid @RequestBody ProfilePrivacyRequest dto) {
         DefaultResponse<Void> response = accountService.profilePrivacy(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
