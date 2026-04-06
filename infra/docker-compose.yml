@@ -6,6 +6,7 @@ services:
   postgres:
     image: postgres:17
     container_name: postgres-db
+    restart: always
     env_file:
       - ../.env
     environment:
@@ -35,6 +36,7 @@ services:
   minio:
     image: minio/minio
     container_name: minio-storage
+    restart: always
     command: server /data --console-address ":9001"
     env_file:
       - ../.env
@@ -46,7 +48,6 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
-    restart: always
 
 volumes:
   postgres_data:

@@ -27,26 +27,16 @@ public class NotificationSettingServiceImpl implements NotificationSettingServic
 
     @Override
     @Transactional
-    public DefaultResponse<NotificationSettingResponse> disableAllNotifications() {
+    public DefaultResponse<NotificationSettingResponse> notifyAllNotifications(NotificationSettingRequest.NotifyAll dto) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         NotificationSetting notificationSetting = user.getNotificationSetting();
 
-        notificationSetting.disableAllNotifications();
-
-        notificationSettingRepository.save(notificationSetting);
-
-        return DefaultResponse.success(notificationSettingMapper.toDTO(notificationSetting));
-    }
-
-    @Override
-    @Transactional
-    public DefaultResponse<NotificationSettingResponse> enableAllNotifications() {
-        User user = authenticatedUserProvider.getAuthenticatedUser();
-
-        NotificationSetting notificationSetting = user.getNotificationSetting();
-
-        notificationSetting.enableAllNotifications();
+        if (dto.notifyAllNotifications()) {
+            notificationSetting.enableAllNotifications();
+        } else {
+            notificationSetting.disableAllNotifications();
+        }
 
         notificationSettingRepository.save(notificationSetting);
 

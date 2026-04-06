@@ -23,13 +23,13 @@ public interface NotificationSettingControllerDocs {
     class NotificationSettingSuccess extends DataSuccess<NotificationSettingResponse> {}
 
     @Operation(
-            summary = "Disable all notifications",
-            description = "Disables all notification types for the authenticated user."
+            summary = "Toggle notify all notifications",
+            description = "Disables or enable all notification types for the authenticated user."
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
-                    description = "All notifications disabled successfully.",
+                    description = "All notification settings changed successfully.",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(implementation = NotificationSettingSuccess.class)
@@ -52,39 +52,7 @@ public interface NotificationSettingControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<NotificationSettingResponse>> disableAllNotifications();
-
-    @Operation(
-            summary = "Enable all notifications",
-            description = "Enables all notification types for the authenticated user."
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "All notifications enabled successfully.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = NotificationSettingSuccess.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentication required. The user must be logged in to update notification settings.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "An unexpected internal server error occurred.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class)
-                    )
-            )
-    })
-    ResponseEntity<DefaultResponse<NotificationSettingResponse>> enableAllNotifications();
+    ResponseEntity<DefaultResponse<NotificationSettingResponse>> notifyAllNotifications(NotificationSettingRequest.NotifyAll dto);
 
     @Operation(
             summary = "Retrieve notification settings",

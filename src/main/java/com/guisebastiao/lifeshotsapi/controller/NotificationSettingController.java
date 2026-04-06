@@ -21,16 +21,9 @@ public class NotificationSettingController implements NotificationSettingControl
     }
 
     @Override
-    @PostMapping("/disable-all")
-    public ResponseEntity<DefaultResponse<NotificationSettingResponse>> disableAllNotifications() {
-        DefaultResponse<NotificationSettingResponse> response = this.notificationSettingService.disableAllNotifications();
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @Override
-    @PostMapping("/enable-all")
-    public ResponseEntity<DefaultResponse<NotificationSettingResponse>> enableAllNotifications() {
-        DefaultResponse<NotificationSettingResponse> response = this.notificationSettingService.enableAllNotifications();
+    @PostMapping("/notify-all")
+    public ResponseEntity<DefaultResponse<NotificationSettingResponse>> notifyAllNotifications(@RequestBody @Valid NotificationSettingRequest.NotifyAll dto) {
+        DefaultResponse<NotificationSettingResponse> response = this.notificationSettingService.notifyAllNotifications(dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 

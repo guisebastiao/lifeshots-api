@@ -67,7 +67,9 @@ public class SecurityConfig {
                         )
                         .contentTypeOptions(Customizer.withDefaults())
                         .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'none' " + "script-src 'self'; " + "style-src 'self'; " + "img-src 'self'; " + "connect-src 'self'; " + "font-src 'self'; " + "frame-ancestors 'none'"
+                        ))
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -98,7 +100,6 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(frontendUrl));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Content-Type", "X-Requested-With"));
-        configuration.setExposedHeaders(List.of("X-Auth-Status"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

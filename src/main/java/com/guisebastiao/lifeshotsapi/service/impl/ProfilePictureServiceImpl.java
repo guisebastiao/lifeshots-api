@@ -55,7 +55,23 @@ public class ProfilePictureServiceImpl implements ProfilePictureService {
                 .orElseThrow(() -> new NotFoundException("services.profile-picture-service.methods.upload-profile-picture.not-found "));
 
         if (profile.getProfilePicture() != null) {
-            throw new ConflictException("services.profile-picture-service.methods.upload-profile-picture.conflict");
+//            throw new ConflictException("services.profile-picture-service.methods.upload-profile-picture.conflict");
+
+            ProfilePicture old = profile.getProfilePicture();
+
+            try {
+                minioClient.removeObject(
+                        RemoveObjectArgs.builder()
+                                .bucket(minioConfig.getMinioBucket())
+                                .object(minioConfig.getProfilePicturesFolder() + old.getFileKey())
+                                .build()
+                );
+            } catch (Exception error) {
+                throw new FailedDependencyException();
+            }
+
+            profile.setProfilePicture(null);
+            profilePictureRepository.delete(old);
         }
 
         MultipartFile file = dto.file();
