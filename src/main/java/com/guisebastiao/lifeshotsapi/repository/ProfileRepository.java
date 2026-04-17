@@ -26,8 +26,10 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     boolean profilesFollowEachOther(@Param("profileA") Profile profileA, @Param("profileB") Profile profileB);
 
     @Query("""
-        SELECT p FROM Profile p WHERE LOWER(p.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
-            OR LOWER(p.user.handle) LIKE LOWER(CONCAT('%', :search, '%'))
+        SELECT p FROM Profile p WHERE p.user.isDeleted = false AND (
+            LOWER(p.fullName) LIKE CONCAT('%', LOWER(:search), '%')
+            OR LOWER(p.user.handle) LIKE CONCAT('%', LOWER(:search), '%')
+        )
     """)
     Page<Profile> searchProfiles(@Param("search") String search, Pageable pageable);
 

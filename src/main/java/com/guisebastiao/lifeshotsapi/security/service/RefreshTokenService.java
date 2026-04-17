@@ -1,11 +1,10 @@
-package com.guisebastiao.lifeshotsapi.security.services;
+package com.guisebastiao.lifeshotsapi.security.service;
 
 import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.exception.SessionExpiredException;
 import com.guisebastiao.lifeshotsapi.exception.UnauthorizedException;
 import com.guisebastiao.lifeshotsapi.repository.RefreshTokenRepository;
-import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +26,6 @@ import java.util.UUID;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final AuthenticatedUserProvider authenticatedUserProvider;
     private final Environment environment;
     private final UUIDConverter uuidConverter;
 
@@ -40,9 +38,8 @@ public class RefreshTokenService {
     @Value("${cookie.access-token.name}")
     private String cookieAccessTokenName;
 
-    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, AuthenticatedUserProvider authenticatedUserProvider, Environment environment, UUIDConverter uuidConverter) {
+    public RefreshTokenService(RefreshTokenRepository refreshTokenRepository, Environment environment, UUIDConverter uuidConverter) {
         this.refreshTokenRepository = refreshTokenRepository;
-        this.authenticatedUserProvider = authenticatedUserProvider;
         this.environment = environment;
         this.uuidConverter = uuidConverter;
     }
@@ -89,11 +86,11 @@ public class RefreshTokenService {
     }
 
     private void removeCookie(HttpServletResponse response, String cookieName) {
-        boolean secure = isProduction();
+        boolean isProd = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, "")
                 .httpOnly(true)
-                .secure(secure)
+                .secure(isProd)
                 .path("/")
                 .sameSite("Lax")
                 .maxAge(0)

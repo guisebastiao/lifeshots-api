@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 
 @Tag(
@@ -215,5 +217,5 @@ public interface AccountControllerDocs {
                     )
             )
     })
-    ResponseEntity<DefaultResponse<Void>> deleteAccount(DeleteAccountRequest dto);
+    ResponseEntity<DefaultResponse<Void>> deleteAccount(HttpServletRequest httpRequest, HttpServletResponse httpResponse, DeleteAccountRequest dto);
 }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guisebastiao.lifeshotsapi.dto.response.SessionResponse;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;
-import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.service.AccessTokenService;
 import com.guisebastiao.lifeshotsapi.util.UUIDConverter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -85,11 +85,11 @@ public class SecurityFilter extends OncePerRequestFilter {
     }
 
     private void createCookie(HttpServletResponse response, String cookieName, String value) {
-        boolean secure = isProduction();
+        boolean isProd = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, value)
                 .httpOnly(false)
-                .secure(secure)
+                .secure(isProd)
                 .path("/")
                 .sameSite("Lax")
                 .build();

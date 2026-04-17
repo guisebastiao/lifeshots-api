@@ -1,4 +1,4 @@
-package com.guisebastiao.lifeshotsapi.security.services;
+package com.guisebastiao.lifeshotsapi.security.service;
 
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;

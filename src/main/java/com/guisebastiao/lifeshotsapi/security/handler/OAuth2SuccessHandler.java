@@ -6,8 +6,8 @@ import com.guisebastiao.lifeshotsapi.entity.RefreshToken;
 import com.guisebastiao.lifeshotsapi.entity.Role;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
-import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
-import com.guisebastiao.lifeshotsapi.security.services.RefreshTokenService;
+import com.guisebastiao.lifeshotsapi.security.service.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.service.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +21,7 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -129,13 +130,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     }
 
     private void createCookie(HttpServletResponse response, String cookieName, String value, boolean httpOnly) {
-        boolean secure = isProduction();
+        boolean isProd = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, value)
                 .httpOnly(httpOnly)
-                .secure(secure)
+                .secure(isProd)
                 .path("/")
                 .sameSite("Lax")
+                .maxAge((Duration.ofDays(365).getSeconds()))
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

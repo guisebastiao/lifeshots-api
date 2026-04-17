@@ -15,8 +15,8 @@ import com.guisebastiao.lifeshotsapi.mapper.UserMapper;
 import com.guisebastiao.lifeshotsapi.repository.RoleRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.UserPrincipal;
-import com.guisebastiao.lifeshotsapi.security.services.AccessTokenService;
-import com.guisebastiao.lifeshotsapi.security.services.RefreshTokenService;
+import com.guisebastiao.lifeshotsapi.security.service.AccessTokenService;
+import com.guisebastiao.lifeshotsapi.security.service.RefreshTokenService;
 import com.guisebastiao.lifeshotsapi.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,6 +31,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -164,12 +165,13 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void createCookie(HttpServletResponse response, String cookieName, String value, boolean httpOnly) {
-        boolean secure = isProduction();
+        boolean isProd = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, value)
                 .httpOnly(httpOnly)
-                .secure(secure)
+                .secure(isProd)
                 .path("/")
+                .maxAge(Duration.ofDays(365).getSeconds())
                 .sameSite("Lax")
                 .build();
 
@@ -177,11 +179,11 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void removeCookie(HttpServletResponse response, String cookieName, boolean httpOnly) {
-        boolean secure = isProduction();
+        boolean isProd = isProduction();
 
         ResponseCookie cookie = ResponseCookie.from(cookieName, "")
                 .httpOnly(httpOnly)
-                .secure(secure)
+                .secure(isProd)
                 .path("/")
                 .sameSite("Lax")
                 .maxAge(0)

@@ -5,18 +5,24 @@ import com.guisebastiao.lifeshotsapi.dto.request.DeleteAccountRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.LanguageRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
+import com.guisebastiao.lifeshotsapi.dto.response.FieldErrorResponse;
 import com.guisebastiao.lifeshotsapi.entity.Profile;
 import com.guisebastiao.lifeshotsapi.entity.User;
 import com.guisebastiao.lifeshotsapi.enums.Language;
-import com.guisebastiao.lifeshotsapi.exception.BadRequestException;
 import com.guisebastiao.lifeshotsapi.exception.ConflictException;
+import com.guisebastiao.lifeshotsapi.exception.ValidationException;
 import com.guisebastiao.lifeshotsapi.repository.ProfileRepository;
 import com.guisebastiao.lifeshotsapi.repository.UserRepository;
 import com.guisebastiao.lifeshotsapi.security.provider.AuthenticatedUserProvider;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
+import com.guisebastiao.lifeshotsapi.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class AccountServiceImpl implements AccountService {
@@ -24,12 +30,14 @@ public class AccountServiceImpl implements AccountService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final AuthenticatedUserProvider authenticatedUserProvider;
+    private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
 
-    public AccountServiceImpl(UserRepository userRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, PasswordEncoder passwordEncoder) {
+    public AccountServiceImpl(UserRepository userRepository, ProfileRepository profileRepository, AuthenticatedUserProvider authenticatedUserProvider, AuthService authService, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.authenticatedUserProvider = authenticatedUserProvider;
+        this.authService = authService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -63,7 +71,8 @@ public class AccountServiceImpl implements AccountService {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         if (!passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
-            throw new BadRequestException("services.account-service.methods.update-password.bad-request");
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("currentPassword", "services.account-service.methods.update-password.bad-request"));
+            throw new ValidationException(errors);
         }
 
         user.setPassword(passwordEncoder.encode(dto.confirmPassword()));
@@ -75,15 +84,18 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public DefaultResponse<Void> deleteAccount(DeleteAccountRequest dto) {
+    public DefaultResponse<Void> deleteAccount(HttpServletRequest request, HttpServletResponse response, DeleteAccountRequest dto) {
         User user = authenticatedUserProvider.getAuthenticatedUser();
 
         if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
-            throw new BadRequestException("services.account-service.methods.delete-account.bad-request");
+            List<FieldErrorResponse> errors = List.of(new FieldErrorResponse("password", "services.account-service.methods.delete-account.bad-request"));
+            throw new ValidationException(errors);
         }
 
         user.setDeleted(true);
         userRepository.save(user);
+
+        authService.logout(request, response);
 
         return DefaultResponse.success();
     }

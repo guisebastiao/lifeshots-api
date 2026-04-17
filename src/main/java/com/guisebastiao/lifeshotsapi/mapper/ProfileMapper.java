@@ -9,6 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = "spring", uses = {ProfileResolver.class, ProfilePictureMapper.class})
 public interface ProfileMapper {
 
+    @Mapping(target = "isPrivate", source = "private")
     @Mapping(target = "handle", source = ".", qualifiedByName = "resolveGetHandle")
     @Mapping(target = "isOwnProfile", source = ".", qualifiedByName = "resolveIsOwnProfile")
     @Mapping(target = "isFollowing", source = ".", qualifiedByName = "resolveIsFollowing")

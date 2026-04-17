@@ -7,6 +7,10 @@ import com.guisebastiao.lifeshotsapi.dto.request.LanguageRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.ProfilePrivacyRequest;
 import com.guisebastiao.lifeshotsapi.dto.request.UpdatePasswordRequest;
 import com.guisebastiao.lifeshotsapi.service.AccountService;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,8 +48,8 @@ public class AccountController implements AccountControllerDocs {
 
     @Override
     @DeleteMapping
-    public ResponseEntity<DefaultResponse<Void>> deleteAccount(@RequestBody @Valid DeleteAccountRequest dto) {
-        DefaultResponse<Void> response = accountService.deleteAccount(dto);
+    public ResponseEntity<DefaultResponse<Void>> deleteAccount(HttpServletRequest httpRequest, HttpServletResponse httpResponse, @RequestBody @Valid DeleteAccountRequest dto) {
+        DefaultResponse<Void> response = accountService.deleteAccount(httpRequest, httpResponse, dto);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
